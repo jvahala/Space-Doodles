@@ -4,6 +4,7 @@
 *.blg 
 # *.log is already ignored below 
 *.synctex
+*.dvi #keep dvis for personal previews
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

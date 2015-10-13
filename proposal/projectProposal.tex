@@ -6,6 +6,7 @@
 \usepackage{siunitx} %units (hertz)
 \usepackage{amsmath}
 
+
 \usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
@@ -15,6 +16,9 @@
 }
 \urlstyle{same}
 
+
+\usepackage{bibentry} %enables displaying of paper names
+
 \title{ECE 532 Project Propsal}
 \date{}
 \author{}
@@ -22,6 +26,11 @@
 \setlength{\parindent}{0em}
 
 \begin{document}
+
+%define bibliography (but do not display it)
+\bibliographystyle{plain}
+\nobibliography{projectProposal}
+
 \maketitle
 
 \section{Tentative Title: The DongleVerse\textsuperscript{TM\textregistered}}
@@ -46,6 +55,7 @@ If time permits, an easy-to-use GUI will be developed to allow for quick input o
 
 \section{Related Papers, Datasets, or Resources}
 
+
 \underline{Datasets}\par
 \url{http://astronexus.com/node/34}\par
 Database containing all stars in Hipparcos, Yale Bright Star, and Gliese catalogs (almost 120,000 stars, 14 MB)\par
@@ -60,6 +70,16 @@ Database containing all stars in Hipparcos, Yale Bright Star, and Gliese catalog
 \underline{Resources}\par
 \url{https://en.wikipedia.org/wiki/Procrustes_analysis}\par
 Analysis based on the mythological theif Procrustus, who stretched or cut off victims' limbs so they fit his iron bed. \par
+
+
+For data bases.... there's that star data base. I'm finding out how to "cite" that.
+There are plenty of papers dealing with a similar problem - taking an image of the sky or star map and finding known constellations, which is useful for satellite orientation and navigation:
+\\\\
+\bibentry{Renken}
+\\\\
+\bibentry{Krips2011}
+\\\\
+\bibentry{Ji}
 
 
 \end{document} 
