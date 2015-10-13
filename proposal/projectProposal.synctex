@@ -1,0 +1,236 @@
+SyncTeX Version:1
+Input:1:C:/Users/dcona/OneDrive for Business/ece532/projectProposal/projectProposal.tex
+Input:2:C:\Program Files\MiKTeX 2.9\tex\latex\base\article.cls
+Input:3:C:\Program Files\MiKTeX 2.9\tex\latex\base\size10.clo
+Input:4:C:\Program Files\MiKTeX 2.9\tex\latex\geometry\geometry.sty
+Input:5:C:\Program Files\MiKTeX 2.9\tex\latex\graphics\keyval.sty
+Input:6:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\ifpdf.sty
+Input:7:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\ifvtex.sty
+Input:8:C:\Program Files\MiKTeX 2.9\tex\generic\ifxetex\ifxetex.sty
+Input:9:C:\Program Files\MiKTeX 2.9\tex\latex\geometry\geometry.cfg
+Input:10:C:\Program Files\MiKTeX 2.9\tex\latex\graphics\graphicx.sty
+Input:11:C:\Program Files\MiKTeX 2.9\tex\latex\graphics\graphics.sty
+Input:12:C:\Program Files\MiKTeX 2.9\tex\latex\graphics\trig.sty
+Input:13:C:\Program Files\MiKTeX 2.9\tex\latex\00miktex\graphics.cfg
+Input:14:C:\Program Files\MiKTeX 2.9\tex\latex\pdftex-def\pdftex.def
+Input:15:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\infwarerr.sty
+Input:16:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\ltxcmds.sty
+Input:17:C:\Program Files\MiKTeX 2.9\tex\latex\oberdiek\epstopdf.sty
+Input:18:C:\Program Files\MiKTeX 2.9\tex\latex\oberdiek\epstopdf-base.sty
+Input:19:C:\Program Files\MiKTeX 2.9\tex\latex\oberdiek\grfext.sty
+Input:20:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\kvdefinekeys.sty
+Input:21:C:\Program Files\MiKTeX 2.9\tex\latex\oberdiek\kvoptions.sty
+Input:22:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\kvsetkeys.sty
+Input:23:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\etexcmds.sty
+Input:24:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\ifluatex.sty
+Input:25:C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\pdftexcmds.sty
+Input:26:C:\Program Files\MiKTeX 2.9\tex\latex\float\float.sty
+Input:27:C:\Program Files\MiKTeX 2.9\tex\latex\siunitx\siunitx.sty
+Input:28:C:\Program Files\MiKTeX 2.9\tex\latex\l3kernel\expl3.sty
+Input:29:C:\Program Files\MiKTeX 2.9\tex\latex\l3kernel\expl3-code.tex
+Input:30:C:\Program Files\MiKTeX 2.9\tex\latex\misc\etex.sty
+Input:31:C:\Program Files\MiKTeX 2.9\tex\latex\l3kernel\l3unicode-data.def
+Input:32:C:\Program Files\MiKTeX 2.9\tex\latex\l3kernel\l3pdfmode.def
+Input:33:C:\Program Files\MiKTeX 2.9\tex\latex\l3packages\xparse\xparse.sty
+Input:34:C:\Program Files\MiKTeX 2.9\tex\latex\amsmath\amstext.sty
+Input:35:C:\Program Files\MiKTeX 2.9\tex\latex\amsmath\amsgen.sty
+Input:36:C:\Program Files\MiKTeX 2.9\tex\latex\tools\array.sty
+Input:37:C:\Program Files\MiKTeX 2.9\tex\latex\l3packages\l3keys2e\l3keys2e.sty
+Input:38:C:\Program Files\MiKTeX 2.9\tex\latex\beamer\base\translator\translator.sty
+Input:39:C:\Program Files\MiKTeX 2.9\tex\latex\beamer\base\translator\translator-language-mappings.tex
+Input:40:C:\Program Files\MiKTeX 2.9\tex\latex\amsmath\amsmath.sty
+Input:41:C:\Program Files\MiKTeX 2.9\tex\latex\amsmath\amsbsy.sty
+Input:42:C:\Program Files\MiKTeX 2.9\tex\latex\amsmath\amsopn.sty
+Input:43:C:\Users\dcona\OneDrive for Business\ece532\projectProposal\projectProposal.aux
+Input:44:C:\Program Files\MiKTeX 2.9\tex\context\base\supp-pdf.mkii
+Input:45:C:\Program Files\MiKTeX 2.9\tex\latex\beamer\base\translator\dicts\translator-basic-dictionary\translator-basic-dictionary-English.dict
+Input:46:C:\Program Files\MiKTeX 2.9\tex\latex\siunitx\siunitx-abbreviations.cfg
+Input:47:C:\Program Files\MiKTeX 2.9\tex\latex\base\omscmr.fd
+Output:pdf
+Magnification:1000
+Unit:1
+X Offset:0
+Y Offset:0
+Content:
+!3486
+{1
+[1,29:4736286,51697090:33154008,46960804,0
+[1,29:2368143,51697090:35522151,51753779,0
+[1,29:2368143,729743:35522151,786432,0
+h1,29:2368143,729743:35522151,0,0
+]
+[1,29:2368143,49731010:35522151,47362867,0
+h1,14:2368143,3023503:0,0,0
+(1,14:2368143,5776017:35522151,786432,220273
+k1,14:14375854,5776017:12007711
+(1,14:14375854,5776017:0,0,0
+g1,14:14375854,5776017
+g1,14:14375854,5776017
+g1,14:14048174,5776017
+h1,14:14048174,5776017:0,0,0
+g1,14:14375854,5776017
+)
+x1,14:16554725,5776017
+g1,14:16896601,5776017
+x1,14:18454702,5776017
+g1,14:18796578,5776017
+x1,14:20428408,5776017
+x1,14:22121311,5776017
+g1,14:22463187,5776017
+x1,14:25882583,5776017
+g1,14:25882583,5776017
+k1,14:37890294,5776017:12007711
+)
+(1,14:2368143,7676562:35522151,0,0
+k1,14:20129219,7676562:17761076
+h1,14:20129219,7676562:0,0,0
+(1,14:20129219,7676562:0,0,0
+$1,14:20129219,7676562
+v1,14:20129219,7676562:0,0,0
+$1,14:20129219,7676562
+)
+g1,14:20129219,7676562
+k1,14:37890295,7676562:17761076
+)
+(1,16:2368143,10499159:35522151,677613,183500
+(1,16:2368143,10499159:1592523,608173,0
+g1,16:2368143,10499159
+x1,16:2898984,10499159
+g1,16:3960666,10499159
+)
+x1,16:4699037,10499159
+x1,16:5684806,10499159
+x1,16:7852404,10499159
+x1,16:8307332,10499159
+g1,16:8661226,10499159
+x1,16:11181626,10499159
+g1,16:11653484,10499159
+x1,16:13466098,10499159
+g1,16:13819992,10499159
+x1,16:17866291,10499159
+x1,16:19599063,10499159
+$1,16:19599063,10499159
+(1,16:19599063,10156692:786428,335146,127431
+[1,16:19599063,10156692:753660,335146,127431
+(1,16:19599063,10156692:753660,335146,0
+g1,16:19599063,10156692
+(1,16:19599063,10156692:753660,335146,0
+k1,16:19755711,10156692:156648
+(1,16:19755711,10136301:440365,314755,0
+x1,16:20196076,10136301
+)
+k1,16:20352723,10156692:156647
+)
+g1,16:20352723,10156692
+)
+(1,16:19599063,10156692:753660,455111,127431
+g1,16:19599063,10156692
+(1,16:19599063,10156692:753660,455111,127431
+x1,16:20352723,10156692
+)
+g1,16:20352723,10156692
+)
+]
+)
+$1,16:20385491,10499159
+k1,16:37890295,10499159:17504804
+g1,16:37890295,10499159
+)
+(1,18:2368143,12327794:35522151,655359,0
+(1,18:2368143,12327794:1592523,608173,0
+g1,18:2368143,12327794
+x1,18:2898984,12327794
+g1,18:3960666,12327794
+)
+x1,18:4699037,12327794
+x1,18:6495813,12327794
+g1,18:6849707,12327794
+x1,18:9225932,12327794
+x1,18:9786263,12327794
+x1,18:11152580,12327794
+k1,18:37890294,12327794:26737714
+g1,18:37890294,12327794
+)
+(1,20:2368143,13763213:35522151,455111,127431
+x1,20:4052058,13763213
+g1,19:4270511,13763213
+x1,19:7256048,13763213
+g1,19:7474501,13763213
+x1,19:8761558,13763213
+g1,19:8980011,13763213
+x1,19:9471532,13763213
+x1,19:10946096,13763213
+k1,20:37890294,13763213:26944198
+g1,20:37890294,13763213
+)
+(1,21:2368143,15930449:35522151,655359,183500
+(1,21:2368143,15930449:1592523,608173,0
+g1,21:2368143,15930449
+x1,21:2898984,15930449
+g1,21:3960666,15930449
+)
+x1,21:6252786,15930449
+g1,21:6606680,15930449
+x1,21:7964365,15930449
+x1,21:10959356,15930449
+g1,21:11313250,15930449
+x1,21:12168494,15930449
+g1,21:12522388,15930449
+x1,21:13260759,15930449
+x1,21:15059719,15930449
+g1,21:15413613,15930449
+x1,21:17109354,15930449
+g1,21:17463248,15930449
+x1,21:20269278,15930449
+x1,21:22554841,15930449
+k1,21:37890294,15930449:15335453
+g1,21:37890294,15930449
+)
+(1,23:2368143,17759084:35522151,647495,183500
+(1,23:2368143,17759084:1592523,608173,0
+g1,23:2368143,17759084
+x1,23:2898984,17759084
+g1,23:3960666,17759084
+)
+x1,23:6176327,17759084
+g1,23:6530221,17759084
+x1,23:10795409,17759084
+k1,23:37890293,17759084:27094884
+g1,23:37890293,17759084
+)
+(1,25:2368143,19587719:35522151,655359,183500
+(1,25:2368143,19587719:1592523,608173,0
+g1,25:2368143,19587719
+x1,25:2898984,19587719
+g1,25:3960666,19587719
+)
+x1,25:7535105,19587719
+g1,25:7888999,19587719
+x1,25:8614264,19587719
+x1,25:9690690,19587719
+x1,25:11351918,19587719
+g1,25:11705812,19587719
+x1,25:15994376,19587719
+g1,25:16348270,19587719
+x1,25:17312741,19587719
+g1,25:17666635,19587719
+x1,25:22291074,19587719
+k1,25:37890294,19587719:15599220
+g1,25:37890294,19587719
+)
+]
+(1,29:2368143,51697090:35522151,422343,0
+k1,29:19965379,51697090:17597236
+x1,29:20293060,51697090
+k1,29:37890296,51697090:17597236
+)
+]
+]
+!4103
+}1
+Input:48:C:\Users\dcona\OneDrive for Business\ece532\projectProposal\projectProposal.aux
+!98
+Postamble:
+Count:123
+!25
+Post scriptum:
