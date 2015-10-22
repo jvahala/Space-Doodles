@@ -1,13 +1,19 @@
 \documentclass{article}
+
+%workaround for bibentry/hyperref conflict
+  \makeatletter
+  \let\saved@bibitem\@bibitem
+  \makeatother
+
 \usepackage{geometry}
 \usepackage{graphicx} %allows images
 \usepackage{epstopdf} %enables eps in pdfs
 \usepackage{float} %fixes images
 \usepackage{siunitx} %units (hertz)
 \usepackage{amsmath}
-
-
+\usepackage{bibentry} %enables displaying of paper names
 \usepackage{hyperref}
+
 \hypersetup{
     colorlinks=true,
     linkcolor=blue,
@@ -16,70 +22,69 @@
 }
 \urlstyle{same}
 
-
-\usepackage{bibentry} %enables displaying of paper names
-
 \title{ECE 532 Project Propsal}
 \date{}
 \author{}
 \geometry{margin=.5in}
-\setlength{\parindent}{0em}
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{.5cm}
 
 \begin{document}
 
 %define bibliography (but do not display it)
-\bibliographystyle{plain}
-\nobibliography{projectProposal}
+\begingroup
+  \makeatletter
+  \let\@bibitem\saved@bibitem
+  \bibliographystyle{plain}
+  \nobibliography{projectProposal}
+\endgroup
 
 \maketitle
 
 \section{Tentative Title: The DongleVerse\textsuperscript{TM\textregistered}}
-
 \section{Team Members}
 Devin Conathan, Josh Vahala
 
 \section{Brief Overview of Topic and Motivation}
-People look to the stars for ages for naviagation, hope, and beauty. Mythological figures and important events have been immortalized in the stars for ages, and their stories have been passed down through the generations. We all know the Big Dipper (Ursa Major), the Little Dipper (Ursa Minor), and Orion's belt (a few of us even know where Orion went off to), but where is the Happy Monkey, Giant Stick Man Weilding an Ax, or the Weird Looking Dong? \par
+People look to the stars for ages for naviagation, hope and beauty. Mythological figures and important events have been immortalized in the stars for ages, and their stories have been passed down through the generations. We all know the Big Dipper (Ursa Major), the Little Dipper (Ursa Minor), and Orion's belt (a few of us even know where Orion went off to), but where is the Happy Monkey, Giant Stick Man Weilding an Ax, or the Weird Looking Dong? \par
 Systems have been developed to find constellations in images of the sky taken from earth, but they have not been able to take images of new constellations and send them to the stars. We propose a system that allows for users to draw images and see their creations turned into constellations! \par
 Welcome to the DongleVerse\textsuperscript{TM\textregistered}! 
 
 \section{Core Concepts}
 
-\textit{Image Processing} will be used to determine key features of hand-drawn images. There must exist enough features for users to identify their drawings accurately, but there cannot be so many features that the constellation-finding system will stuggle to meet fit requirements. Thus, the number of features for a specific drawing must be optimized for accuracy and speed. \par
-\textit{Planar Projection} will be used to map stars from 3d spacial locations (given by dataset) to planar surfaces that represent a visible portion of sky from earth. \par
-\textit{Procrustean Analysis} will be used to match key features from images to constellation planes. The set with the minimal error will be chosen as the proposed constellation. \\
-\hfill \break
-\textit{Reach Goals}\\
-If time permits, an easy-to-use GUI will be developed to allow for quick input of new images for feature recognition and constellation mapping. Further, they system will be able to match constellations for the specific season or location on earth (thereby narrowing the search feild - increasing speed - as well as improving overall functionality). This system is proposed to be submitted to the Engineering Expo. 
+\subsection{Image Processing}
+Image processing will be used to determine key features of hand-drawn images. There must exist enough features for users to identify their drawings accurately, but there cannot be so many features that the constellation-finding system will stuggle to meet fit requirements. Thus, the number of features for a specific drawing must be optimized for accuracy and speed.
+\subsection{Planar Projection}
+Planar projection will be used to map stars from 3d spacial locations (given by dataset) to planar surfaces that represent a visible portion of sky from earth. \par
+\subsection{Procrustean Analysis}
+Procrustean analysis will be used to match key features from images to constellation planes. The set with the minimal error will be chosen as the proposed constellation.
+\subsection{Reach Goals}
+If time permits, an easy-to-use GUI will be developed to allow for quick input of new images for feature recognition and constellation mapping. Further, they system will be able to match constellations for the specific season or location on earth (thereby narrowing the search field - increasing speed - as well as improving overall functionality). This system is proposed to be submitted to the Engineering Expo. 
 
 
-\section{Related Papers, Datasets, or Resources}
+\section{Resources}
 
 
-\underline{Datasets}\par
-\url{http://astronexus.com/node/34}\par
-Database containing all stars in Hipparcos, Yale Bright Star, and Gliese catalogs (almost 120,000 stars, 14 MB)\par
+\subsection{Datasets}
+Yale Bright Star Catalog
+\url{http://tdc-www.harvard.edu/catalogs/bsc5.html}
 
-\hfill \break
-\underline{Papers}\par
-\url{http://lepo.it.da.ut.ee/~timo_p/constellations/petmanson-krips-algo-project.pdf}\par
-\url{http://www.renken.de/or1997.pdf}\par
-\url{http://web.stanford.edu/class/ee368/Project_Spring_1415/Reports/Ji_Liu_Wang.pdf}\par
+\subsection{Papers}
+\bibentry{Krips2011}
+\url{http://lepo.it.da.ut.ee/~timo_p/constellations/petmanson-krips-algo-project.pdf}
 
-\hfill \break
-\underline{Resources}\par
+\bibentry{Renken}
+\url{http://www.renken.de/or1997.pdf}
+
+\bibentry{Ji}
+\url{http://web.stanford.edu/class/ee368/Project_Spring_1415/Reports/Ji_Liu_Wang.pdf}
+\subsection{Other Resources}
 \url{https://en.wikipedia.org/wiki/Procrustes_analysis}\par
-Analysis based on the mythological theif Procrustus, who stretched or cut off victims' limbs so they fit his iron bed. \par
+Analysis based on the mythological theif Procrustes, who stretched or cut off victims' limbs so they fit his iron bed. \par
 
 
 For data bases.... there's that star data base. I'm finding out how to "cite" that.
 There are plenty of papers dealing with a similar problem - taking an image of the sky or star map and finding known constellations, which is useful for satellite orientation and navigation:
-\\\\
-\bibentry{Renken}
-\\\\
-\bibentry{Krips2011}
-\\\\
-\bibentry{Ji}
 
 
 \end{document} 
