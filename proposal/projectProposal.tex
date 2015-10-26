@@ -30,7 +30,6 @@ ECE 532 Project Propsal\\\vspace{1cm}\huge \textbf{The DoodleVerse}
 \horrule{0.5pt}
 }
 \date{}
-\author{}
 \geometry{margin=.5in}
 \setlength{\parindent}{0cm}
 \setlength{\parskip}{.5cm}
@@ -44,24 +43,23 @@ ECE 532 Project Propsal\\\vspace{1cm}\huge \textbf{The DoodleVerse}
   \nobibliography{projectProposal}
 \endgroup
 \maketitle
-
 \section{Team Members}
 Devin Conathan, Josh Vahala, Zach Pace 
 
 \section{Brief Overview of Topic and Motivation}
 For ages, people have looked to the stars for navigation, inspiration and beauty. Ancient civilizations all over the globe canonized their mythological figures and epic tales by casting their images in the night sky, immortalizing them and passing them down through the generations.  We all know the Big Dipper (Ursa Major), the Little Dipper (Ursa Minor), and Orion's belt (a few of us even know where Orion went off to), but what about our figures and epic tales?  Where is the Happy Monkey or the Stick Figure Wielding an Axe?  Does the iconic \href{http://cliparts.co/cliparts/qiB/yEg/qiByEg5i5.jpg}{silhouette of Michael Jackson moonwalking} exist in our sky, waiting to be discovered?
 
-Systems have been developed to find known constellations in images of the sky taken from earth, but they have not been able to take images of new constellations and send them to the stars. We propose a system that allows for users to draw images and see their creations turned into constellations.
+Systems have been developed to find known constellations in images of the sky taken from earth, but they have not been able to take images of new constellations and send them to the stars. We propose a system that takes images drawn by users and maps them to a place in the sky, showing them that they can see their creations turned into constellations.
 
 Welcome to the DoodleVerse!
 \section{Core Concepts}
 
 \subsection{Image Processing}
-First order b-splines will be used to determine key features of hand-drawn images. There must exist enough features to faithfully depict the drawings, but there cannot be so many features that the search algorithm will fail to find a similar enough match. The number of features must be optimized for accuracy and speed.
+The first part of the task will be to analyze the hand-drawn image into its key feature points, which will eventually be mapped to stars. First order b-splines will be used to determine these key features. There must exist enough features to faithfully depict the drawings, but there cannot be so many features that the search algorithm will fail to find a similar enough match. The number of features must be optimized for accuracy and speed.
 \subsection{Optimization}
-With infinite computational power, the problem would boil down to comparing our $n$ features to every subset of $n$ stars and picking out the best match. With such a huge data set, this naive and brute-force approach isn't computationally feasible even for relatively small values of $n$, and we will need some techniques or shortcuts that will reduce the computational load.
+The next step is to take these key features and find a set of stars to represents them the best. With infinite computational power, the problem would boil down to comparing our $n$ features to every subset of $n$ stars and picking out the best match. With such a huge data set, this naive and brute-force approach isn't computationally feasible even for relatively small values of $n$, and we will need some machine learning techniques to reduce the computational load. Principle component analysis will likely be utilized to help reduce the complexity of the problem.
 \subsection{Procrustes Analysis}
-In line with the theme of Greek mythology, we get the thief Procrustes who stretched or cut off his victims' limbs so they fit his iron bed. Today, we know it as a form of statistical shape analysis that finds the optimal transformation between two sets of points, which will be used extensively in our search algorithm. The set with the minimal error and maximal brightness will be chosen as the proposed constellation.
+In line with the theme of Greek mythology, we get the thief Procrustes who stretched or cut off his victims' limbs so they fit his iron bed. Today, we know it as a form of statistical shape analysis that finds the optimal transformation between two sets of points using singular value decomposition, which will be used extensively in our search algorithm.  The set with the minimal error and maximal brightness will be chosen as the proposed constellation.
 
 
 \section{Resources}
