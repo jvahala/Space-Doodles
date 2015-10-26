@@ -1,0 +1,32 @@
+\begin{thebibliography}{1}
+
+\bibitem{yaleStar}
+D.~Hoffleit and Jr. Warren.
+\newblock {The Bright Star Catalog, 5th revised edition [Data set]}.
+
+\bibitem{Ji}
+Suyao Ji, Jinzhi Wang, and Xiaoge Liu.
+\newblock {Constellation Detection}.
+
+\bibitem{Krips2011}
+Kristjan Krips and Timo Petmanson.
+\newblock {The constellation database}.
+\newblock pages 1--7, 2011.
+
+\bibitem{Renken}
+Hartmut Renken and H~J Rath.
+\newblock {A Method for Three-Axis Attitude determination by Image-processed
+  star constellation matching}.
+\newblock {\em Space Technology}.
+
+\bibitem{Unser1993a}
+M.~Unser, A.~Aldroubi, and M.~Eden.
+\newblock {B-spline signal processing. I. Theory}.
+\newblock {\em IEEE Transactions on Signal Processing}, 41(2):821--833, 1993.
+
+\bibitem{Unser1993b}
+M.~Unser, A.~Aldroubi, and M.~Eden.
+\newblock {B-spline signal processing. II. Efficiency design and applications}.
+\newblock {\em IEEE Transactions on Signal Processing}, 41(2):834--848, 1993.
+
+\end{thebibliography}

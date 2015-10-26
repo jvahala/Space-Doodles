@@ -14,6 +14,8 @@
 \usepackage{bibentry} %enables displaying of paper names
 \usepackage{hyperref}
 
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % Create horizontal rule command with 1 argument of height 
+
 \hypersetup{
     colorlinks=true,
     linkcolor=blue,
@@ -22,7 +24,11 @@
 }
 \urlstyle{same}
 
-\title{ECE 532 Project Propsal}
+\title{
+\horrule{1pt}
+ECE 532 Project Propsal\\\vspace{1cm}\huge \textbf{The DoodleVerse}
+\horrule{0.5pt}
+}
 \date{}
 \author{}
 \geometry{margin=.5in}
@@ -37,51 +43,62 @@
   \bibliographystyle{plain}
   \nobibliography{projectProposal}
 \endgroup
-
 \maketitle
 
-\section{The DoodleVerse}
 \section{Team Members}
-Devin Conathan, Josh Vahala
+Devin Conathan, Josh Vahala, Zach Pace 
 
 \section{Brief Overview of Topic and Motivation}
-People look to the stars for ages for navigation, hope and beauty. Mythological figures and important events have been immortalized in the stars for ages, and their stories have been passed down through the generations. We all know the Big Dipper (Ursa Major), the Little Dipper (Ursa Minor), and Orion's belt (a few of us even know where Orion went off to), but where is the Happy Monkey or the Stick Man weilding an Axe?
+For ages, people have looked to the stars for navigation, inspiration and beauty. Ancient civilizations all over the globe canonized their mythological figures and epic tales by casting their images in the night sky, immortalizing them and passing them down through the generations.  We all know the Big Dipper (Ursa Major), the Little Dipper (Ursa Minor), and Orion's belt (a few of us even know where Orion went off to), but what about our figures and epic tales?  Where is the Happy Monkey or the Stick Figure Wielding an Axe?  Does the iconic \href{http://cliparts.co/cliparts/qiB/yEg/qiByEg5i5.jpg}{silhouette of Michael Jackson moonwalking} exist in our sky, waiting to be discovered?
 
-Systems have been developed to find constellations in images of the sky taken from earth, but they have not been able to take images of new constellations and send them to the stars. We propose a system that allows for users to draw images and see their creations turned into constellations.
+Systems have been developed to find known constellations in images of the sky taken from earth, but they have not been able to take images of new constellations and send them to the stars. We propose a system that allows for users to draw images and see their creations turned into constellations.
 
 Welcome to the DoodleVerse!
 \section{Core Concepts}
 
 \subsection{Image Processing}
-Image processing using first order b-splines will be used to determine key features of hand-drawn images. There must exist enough features for users to identify their drawings accurately, but there cannot be so many features that the constellation-finding system will stuggle to meet fit requirements. Thus, the number of features for a specific drawing must be optimized for accuracy and speed.
-\subsection{Planar Projection}
-Planar projection will be used to map stars from 3d spacial locations (given by dataset) to planar surfaces that represent a visible portion of sky from earth. \par
+First order b-splines will be used to determine key features of hand-drawn images. There must exist enough features to faithfully depict the drawings, but there cannot be so many features that the search algorithm will fail to find a similar enough match. The number of features must be optimized for accuracy and speed.
+\subsection{Optimization}
+With infinite computational power, the problem would boil down to comparing our $n$ features to every subset of $n$ stars and picking out the best match. With such a huge data set, this naive and brute-force approach isn't computationally feasible even for relatively small values of $n$, and we will need some techniques or shortcuts that will reduce the computational load.
 \subsection{Procrustes Analysis}
-Procrustes analysis will be used to match key features from images to constellation planes. The set with the minimal error will be chosen as the proposed constellation.
-\subsection{Reach Goals}
-If time permits, an easy-to-use GUI will be developed to allow for quick input of new images for feature recognition and constellation mapping, possibly using the Stellarium API (\url{http://www.stellarium.org/doc/head/}). Further, they system will be able to match constellations for the specific season or location on earth (thereby narrowing the search field - increasing speed - as well as improving overall functionality). This system is proposed to be submitted to the Engineering Expo. 
+In line with the theme of Greek mythology, we get the thief Procrustes who stretched or cut off his victims' limbs so they fit his iron bed. Today, we know it as a form of statistical shape analysis that finds the optimal transformation between two sets of points, which will be used extensively in our search algorithm. The set with the minimal error and maximal brightness will be chosen as the proposed constellation.
 
 
 \section{Resources}
 
 
-\subsection{Datasets}
+\subsection{Dataset}
 \bibentry{yaleStar}
+\url{http://tdc-www.harvard.edu/catalogs/bsc5.html}
+
+There are many star data sets. The Yale Bright Star Catalog is limited to stars which are visible to the naked-eye, which are precisely the stars this project is concerned with.
 
 \subsection{Papers}
+There are many papers on solving the similar problem: finding known constellations given an image of stars. The theory and techniques will be relevant. We've also included some papers on B-spline signal processing, which will provide useful image-processing techniques to accomplish the first part of our task.
+
 \bibentry{Krips2011}
+\url{http://lepo.it.da.ut.ee/~timo_p/constellations/petmanson-krips-algo-project.pdf}
 
 \bibentry{Renken}
-
-\bibentry{Unser1993a}
-
-\bibentry{Unser1993b}
+\url{http://www.renken.de/or1997.pdf}
 
 \bibentry{Ji}
+\url{http://web.stanford.edu/class/ee368/Project_Spring_1415/Reports/Ji_Liu_Wang.pdf}
+
+\bibentry{Unser1993a}
+\url{http://ieeexplore.ieee.org.ezproxy.library.wisc.edu/stamp/stamp.jsp?tp=&arnumber=193220}
+
+\bibentry{Unser1993b}
+\url{http://ieeexplore.ieee.org.ezproxy.library.wisc.edu/stamp/stamp.jsp?tp=&arnumber=193221}
 
 \subsection{Other Resources}
+Some miscellaneous articles on Procrustes analysis.
+
 \url{https://en.wikipedia.org/wiki/Procrustes_analysis}
 
-Analysis based on the mythological thief Procrustes, who stretched or cut off victims' limbs so they fit his iron bed.
+\url{http://www.mathworks.com/help/stats/procrustes.html}
 
-\end{document} 
+\section{Reach Goals}
+If time permits, an easy-to-use GUI will be developed to allow for quick input of new images for feature recognition and constellation mapping, possibly using the Stellarium API (\url{http://www.stellarium.org/doc/head/}). Further, the system will be able to match constellations for the specific season or location on earth (thereby narrowing the search field and improving overall functionality). This system is proposed to be submitted to the Engineering Expo.
+
+\end{document}

@@ -1,6 +1,5 @@
 # LaTeX compiling files
-*.aux 
-*.bbl 
+*.aux  
 *.blg 
 # *.log is already ignored below 
 *.synctex
