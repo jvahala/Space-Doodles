@@ -1,7 +1,68 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import astropy.table as table
+import pydl.pydlutils.spheregroup.spherematch as spherematch
 
+class StarTable:
+    def __init__(self, file = 'hyg_catalog.fits'):
+        self.tab = table.Table.read(file, format = 'fits')
+        
+    def ClosestStars(self, center_index, radius):
+        """
+        Returns subtable of stars that is
+        within radius of the center_index star
+        """
+        
+        tRA = self.tab['RA']    
+        tDec = self.tab['Dec']
+        cRA = np.array([self.tab['RA'][center_index]])
+        cDec = np.array([self.tab['Dec'][center_index]])
+        
+        m = spherematch(tRA, tDec, cRA, cDec, maxmatch = 0, matchlength = radius)
+        
+        return self.tab[m[0]]
+        
+    def MollProject(self, subtab, center_index = 0):
+        """
+        Returns set of xy coordinates centered at center_index?
+        Implements conversion given at:
+        https://en.wikipedia.org/wiki/Mollweide_projection#Mathematical_formulation
+        """
+    
+        c_ra = np.deg2rad(subtab['RA'][center_index])
+        c_dec = np.deg2rad(subtab['Dec'][center_index])
+
+        #initialize outputs        
+        xy_pos = np.zeros((len(subtab),2))        
+        starsxy = []
+        
+        for i in range(len(subtab)):
+            ra = np.deg2rad(subtab['RA'][i])
+            dec = np.deg2rad(subtab['Dec'][i]) - c_dec
+            
+            #longitude = RA = lambda ?
+            #latitude = dec = phi ?
+            
+            t_0 = dec
+            epsilon = .000001
+            
+            #iterate to find theta
+            error = 1+epsilon        
+            while error > epsilon:
+                t_1 = t_0 - (2*t_0+np.sin(2*t_0)-np.pi*np.sin(dec))/(2+2*np.cos(2*t_0))
+                error = np.abs(t_1 - t_0)
+                t_0 = t_1
+            
+            xy_pos[i,0] = 2*np.sqrt(2)*(ra-c_ra)*np.cos(t_0)/np.pi
+            xy_pos[i,1] = np.sqrt(2)*np.sin(t_0)
+            
+            #create star object with parameters
+            starsxy.append(Star(pos=xy_pos[i],bright=subtab['Mag'][i]))
+
+        #return a starset of stars in starsxy
+        return StarSet(data = starsxy)
+        
 class Point:
     def __init__(self, pos = None):
         '''random position if not specified'''
@@ -31,6 +92,9 @@ class SetOfPoints:
     def GetMatrix(self):
         '''returns position data for all points in set in the form of a nx2 matrix'''
         return np.array([self.points[i].pos for i in range(len(self.points))])
+        
+    def GetLength(self):
+        return len(self.points)
         
 class FeatureSet(SetOfPoints):
     def __init__(self, numPoints = 3, data = None):
@@ -74,32 +138,61 @@ class StarSet(SetOfPoints):
         
         return StarSet(data = subset)
         
+    def GetMatrix(self):
+        '''returns position/mag data for all points in set in the form of a nx3 matrix'''
+        p = np.array([self.points[i].pos for i in range(len(self.points))])
+        m = np.array([self.points[i].bright for i in range(len(self.points))])
+        
+        m = m.reshape(m.shape[0],1)
+
+        return np.hstack((p,m))
 
 def main():
     
     plt.close("all")    
     
-    numStars = 2000
+    star_tab = StarTable()
+    
+    #specify index of star to search around
+    center = 0
+    
+    #pick random index of star to search around
+    center = np.random.randint(len(star_tab.tab))
+    
+    #get subtable of stars near center star
+    m = star_tab.ClosestStars(center,10)
+
+    #convert from spherical to mollweide projection
+    star_subset = star_tab.MollProject(m)
+    
+    
+    RandSearchTest(star_subset)
+    
+
+    
+def RandSearchTest(starset):
     
     #specify feature points
     featdata = np.array([[.3,.3],[.6,.2],[.5,.6]]) 
     
-    #uncomment to generate random feature points
-    #featdata = None
+    #generate random feature points
+    featdata = None
 
     #generate random starset, featureset, get feature angles...
-    starset = StarSet(numStars = numStars, spread=100)
     featset = FeatureSet(data = featdata)
     feat_angles = featset.GetAngles()
     
-    #error tolerance in radians... around .05 is good. .01 can take too long.
-    epsilon = .05
+    #error tolerance in radians
+    epsilon = .005
     num_tries = 0
+    
+    
+    #print(starset.points[2].pos)    
     
     '''picks 3 random points and cycles through all permutations to see if
     there is a good match'''
     while True:
-        sub_verts = np.random.choice(numStars,3,replace=False)
+        sub_verts = np.random.choice(starset.GetLength(),3,replace=False)
         sub_angles = starset.GetAngles(verts = sub_verts)
         error = np.linalg.norm(sub_angles - feat_angles)
         if error < epsilon: break        
@@ -109,7 +202,8 @@ def main():
         sub_angles = sub_angles[[1,2,0]]
         error = np.linalg.norm(sub_angles - feat_angles)
         if error < epsilon: break        
-        num_tries += 1        
+        num_tries += 1
+        if num_tries%3000 == 0: epsilon = 1.5*epsilon        
         print(num_tries)
     
     print(sub_angles)
@@ -123,7 +217,6 @@ def main():
     starM = starset.GetMatrix()
     matchM = match.GetMatrix()
 
-
     #plot everything...
 
     plt.figure()
@@ -132,16 +225,25 @@ def main():
     plt.ylim([0,1])
     plt.show()
     
-    plt.figure()
-    plt.scatter(starM[:,0],starM[:,1])
-    plt.xlim([0,max(starM[:,0])])
-    plt.ylim([0,max(starM[:,1])])
-    plt.show()    
+    lbound = min(min(starM[:,0]),min(starM[:,1]))
+    ubound = max(max(starM[:,0]),max(starM[:,1]))   
+
+    matchM[:,2] = (matchM[:,2]-min(starM[:,2]))/(max(starM[:,2]+1))
+    starM[:,2] = (starM[:,2]-min(starM[:,2]))/(max(starM[:,2]+1))
     
     plt.figure()
-    plt.scatter(matchM[:,0],matchM[:,1])
-    plt.xlim([0,max(starM[:,0])])
-    plt.ylim([0,max(starM[:,1])])
-    plt.show()
+    for i in range(starM.shape[0]):
+        plt.scatter(starM[i,0],starM[i,1],c=[0,0,0],alpha=starM[i,2])
+        plt.xlim([lbound,ubound])
+        plt.ylim([lbound,ubound])
+    plt.show()    
+    
+    
+    plt.figure()
+    for i in range(matchM.shape[0]):
+        plt.scatter(matchM[i,0],matchM[i,1],c=[0,0,0],alpha=matchM[i,2])
+        plt.xlim([lbound,ubound])
+        plt.ylim([lbound,ubound])
+    plt.show()    
 
 if __name__ == '__main__': main()
