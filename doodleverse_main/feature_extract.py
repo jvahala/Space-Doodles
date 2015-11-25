@@ -6,7 +6,7 @@ np.set_printoptions(threshold=np.nan)
 def main():
 	 #import image as grayscale, if image is drawn by hand, cv2.threshold THRESH_BINARY assures it is blk/white
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-	raw_img = cv2.imread('shape3.png',0)
+	raw_img = cv2.imread('shape1.png',0)
 	#ret,raw_img = cv2.threshold(raw_img,127,255,cv2.THRESH_BINARY) #incorrect parameters
 
 	#create grayscale (uint8) all white image to draw features onto
@@ -31,22 +31,32 @@ def main():
 	max_error = 0.2
 	nom_error = 0.05
 	#features = consolidateFeatures(cnt,extrema,corners,max_error,nom_error)
-	cnt_bi, spline_bi = findBisect(features[2,:],features[3,:],0.3,cnt)
+	#cnt_bi, spline_bi = findBisect(features[8,:],features[7,:],0.5,cnt)
 	#plot feature points
 	fig1 = plt.figure(1)
 	plt.imshow(draw_img.squeeze(),cmap='Greys')
-	plt.scatter(corners[:,0],corners[:,1],s=10,c='b',marker='x')
+	plt.scatter(corners[:,0],corners[:,1],s=20,c='b',marker='x')
 	plt.plot(features[:,0],features[:,1])
 	#plt.scatter(extrema[:,0],extrema[:,1],s=20,c='r',marker='o')
 	plt.title('Feature Map')
-	plt.scatter(cnt_bi[0,0],cnt_bi[0,1],s=15,c='r',marker='o')
-	plt.scatter(spline_bi[:,0],spline_bi[:,1],s=15,c='g',marker='o')
+	print(features)
+	for i in range(1):
+		index1 = i
+		index2 = i+1
+		cnt_bi, spline_bi = findBisect(features[index1,:],features[index2,:],0.5,cnt)
+		normError = getNormError(features[index1,:],features[index2,:],cnt,5)
+		features = addFeatures(index1, features, cnt, 5, 0.5)
+		features = removeMidpoints(index1,features,cnt,5,0.2)
+		plt.plot(features[:,0],features[:,1],'r-')
+		print(features)
+		plt.scatter(cnt_bi[0,0],cnt_bi[0,1],s=15,c='r',marker='o')
+		plt.scatter(spline_bi[:,0],spline_bi[:,1],s=15,c='g',marker='o')
 	plt.show()
 
-	print('\nCorners:\n', corners, '\n\nExtrema:\n',extrema,'\n\nOrdered:\n',features)
+	#print('\nCorners:\n', corners, '\n\nExtrema:\n',extrema,'\n\nOrdered:\n',features)
 
 
-	print('\n\ncontour bisect:\n',cnt_bi,'\n\nspline bisect: \n',spline_bi,'\n\nshape cntbi\n',cnt_bi.shape,'\n\nshape splinebi\n',spline_bi.shape,)
+	#print('\n\ncontour bisect:\n',cnt_bi,'\n\nspline bisect: \n',spline_bi,'\n\nshape cntbi\n',cnt_bi.shape,'\n\nshape splinebi\n',spline_bi.shape,)
 
 
 
@@ -110,7 +120,7 @@ features = an ordered array of consolidated feature points in (x,y) coordinates
 PROBLEMS:
 1. not yet implemented
 """
-def consolidateFeatures(contour,features,max_error,nominal_error):
+def consolidateFeatures():
 	#REMOVE midpoints, 
 	#for each point, 
 	#	look at the point to the clockwise direction and check if the next two points are both on the same line (ie nominal error from pt1 to pt3 is not exceeded)
@@ -147,7 +157,7 @@ def orderFeatures(contour,extrema,corners):
 	features_temp.shape = (features_temp.shape[0],2)
 	features = np.zeros((2,2))
 	contour.shape = (contour.shape[0],2)
-	print(contour.shape, features_temp.shape)
+	#print(contour.shape, features_temp.shape)
 	#go over contour and add features as they are reached in the iteration
 	feat_it = 0 #initialization parameter
 	for i in range(contour.shape[0]): 
@@ -202,14 +212,15 @@ cnt_bisect = 1x2 [x,y] point on the contour located between the two points
 spline_bisect = 1x2 [x,y] point located at the midpoint between the points themselves
 
 PROBLEMS:
-1. does not deal with case that point 1 is around 0 index and point 2 is around max index and doing the wrap around - doesnt work
-2. problems with having points not in order   
+1. points on the contour are not linearly spaced, so direct (add the percent of total points between feature points along the contour does not work great)
 """
 def findBisect(point_1,point_2,percent_bisect,contour):
 	#reshape points
 	point_1.shape = (1,2)
 	point_2.shape = (1,2)
 	contour.shape = (contour.shape[0],2)
+	contour_long = np.vstack((contour,contour))
+	contour_long.shape = (contour_long.shape[0],2)
 	#initialize 
 	skip_1 = 0
 	skip_2 = 0
@@ -221,39 +232,131 @@ def findBisect(point_1,point_2,percent_bisect,contour):
 	#get contour bisect between the two points
 	#move along contour to find contour point numbers for both point 1 and 2. Set flag that point has been found when done
 	for i in range(contour.shape[0]-1): 
-		if (distance(point_1,contour[i,:]) < 10) and (skip_1 == 0):
+		dist1 = distance(point_1,contour[i,:])
+		dist2 = distance(point_2,contour[i,:])
+		#print('dist1/dist2: ',dist1,' / ', dist2,'    skip1/skip2: ',skip_1, ' / ', skip_2)
+		if (dist1 < 10) and (skip_1 == 0):
 			tmp_dist = distance(point_1,contour[i,:])
 			nxt_dist = distance(point_1,contour[i+1,:])
 			if tmp_dist < nxt_dist:
 				cnt_pt_1 = i 
 				skip_1 = 1
-		elif (distance(point_2,contour[i,:]) < 10) and (skip_2 == 0):
-			tmp_dist = distance(point_1,contour[i,:])
-			nxt_dist = distance(point_1,contour[i+1,:])
+				#print("\npoint 1 found. \n")
+		if (dist2 < 10) and (skip_2 == 0):
+			tmp_dist = distance(point_2,contour[i,:])
+			nxt_dist = distance(point_2,contour[i+1,:])
 			if tmp_dist < nxt_dist:
 				cnt_pt_2 = i 
 				skip_2 = 1
+				#print('\npoint 2 found. \n')
 	#if flag for points being found are valid, count number of points and return [x,y] coordinate of that bisecting point, else print error that both points not found
 	if (skip_1 == 1) and (skip_2 == 1):
-		total_points = min(abs(cnt_pt_2-cnt_pt_1), abs(cnt_pt_1-cnt_pt_2))
-		if (total_points > 0.5*contour.shape[0]):
-			total_points = -1*total_points
-		#if points not in correct order, flip them so cnt_point_1 has the lower index
-		if np.sign(total_points) == -1:
-			tmp_pt = cnt_pt_2
-			cnt_pt_2 = cnt_pt_1
-			cnt_pt_1 = cnt_pt_2
-		cnt_index = cnt_pt_1+int(total_points*(1-percent_bisect))
-		if cnt_index > (contour.shape[0]-1):
-			cnt_index = cnt_index - contour.shape[0] - 1
-		if cnt_index < 0:
-			cnt_index = contour.shape[0]-1+cnt_index
+		cnt_1_larger = cnt_pt_1 > cnt_pt_2
+		#print(cnt_1_larger, cnt_pt_1, cnt_pt_2, contour.shape[0])
+		cnt_1_shift = cnt_pt_1 + contour.shape[0]
+		cnt_2_shift = cnt_pt_2 + contour.shape[0]
+		if cnt_1_larger:
+			total_points = cnt_1_shift - cnt_2_shift 
+			cnt_index = cnt_2_shift - contour.shape[0]
+			if total_points > contour.shape[0]/2:
+				total_points = 2*contour.shape[0] - cnt_1_shift
+				cnt_index = cnt_1_shift - contour.shape[0]
+			
+		else:
+			total_points = cnt_2_shift - cnt_1_shift 
+			cnt_index = cnt_1_shift - contour.shape[0]
+			if total_points > contour.shape[0]/2:
+				total_points = 2*contour.shape[0] - cnt_2_shift
+				cnt_index = cnt_2_shift - contour.shape[0]
+			
+		#print(cnt_index)
+		cnt_index = cnt_index + int(total_points*(1-percent_bisect))
+		#print(cnt_index)
 		cnt_bisect = contour[cnt_index,:]
 		cnt_bisect.shape = (1,2)
-		print('total points:  ', total_points)
-	else: 
-		print('Error in finding both points')
 	return cnt_bisect, spline_bisect
 
+""" 
+normError = getNormError(point_1,point_2,contour,n)
+Function purpose: return the error between the contour and two features points normalized by the distance between feature points
+INPUTS: 
+point_1 = [x,y] array that can be shaped into a 1 by 2 array
+point_2 = [x,y] array that can be shaped into a 1 by 2 array
+contour = contour point array to find the bisection point on 
+n = number of bisections to perform when calculation total error (ie n = 5 means bisections are used)
+
+OUTPUTS: 
+normError = value of total error normalized by the distance between the two points
+
+PROBLEMS:
+1. 
+"""
+def getNormError(point_1,point_2,contour,n):
+	#scan through percent bisects 0 to 1 using n points, sum errors, normalize by the distance between feature points
+	dist_p1p2 = distance(point_1,point_2)
+	start = 1/n 
+	percent = np.linspace(start,1.0-start,num=n,endpoint=True)
+	absError = 0
+	for i in range(n):
+		cnt_bisect, spline_bisect = findBisect(point_1,point_2,percent[i],contour)
+		absError = absError + distance(cnt_bisect,spline_bisect)
+	normError = absError / dist_p1p2
+	print('absError/dist_p1p2/normError: ', absError,' / ', dist_p1p2, ' / ', normError) 
+	return normError 
+
+""" 
+features = removeMidpoints(pt1_index, pt2_index, features, contour, n, threshold)
+Function purpose: remove midpoints between features points that approximate the contour within some error threshold
+
+INPUTS: 
+pt1_index = index of feature array to start iteration 
+pt2_index = index of feature array to start iteration 
+features = set of feature points [x,y] indexed by pt1_index and pt2_index
+contour = contour point array [x,y]
+n = number of bisections to perform when calculation total error (ie n = 5 means bisections are used)
+threshold = error threshold for comparing iterative errors along the contour 
+
+OUTPUTS: 
+features = new array of feature points with redundant features removed
+
+PROBLEMS:
+1. 
+"""
+def removeMidpoints(pt1_index, features, contour, n, threshold):
+	#will need to add in wrap around ability and other indexing stuff
+	pt2_index = pt1_index + 1
+	if pt2_index < features.shape[0] - 1:
+		print(features.shape[0])
+		print('boom')
+		normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
+		normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
+		if normErr_13-normErr_12 < threshold:
+			print('bam')
+			features  = np.delete(features,(pt2_index),(0))
+			print(normErr_13-normErr_12)
+			features = removeMidpoints(pt1_index,features,contour,n,threshold)
+		else: #maybe dont do this in here
+			print('bing')
+			pt1_index = pt1_index+1
+			features = removeMidpoints(pt1_index,features,contour,n,threshold)
+	return features 
+
+def addFeatures(pt1_index, features, contour, n, threshold):
+	pt2_index = pt1_index + 1
+	if pt2_index < features.shape[0] - 1:
+		#print(features.shape[0], ' wow')
+		normErr = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
+		if normErr > threshold and normErr < 10.0:
+			#print('whoops ',normErr)
+			#do stuff 
+			cnt_bisect,spline_bisect = findBisect(features[pt1_index,:],features[pt2_index,:],0.5,contour)
+			features = np.insert(features, pt2_index, cnt_bisect, axis = 0 )
+			pt1_index = pt1_index+2
+			features = addFeatures(pt1_index, features, contour, n, threshold)
+		else:
+			#print('wheeee')
+			pt1_index = pt1_index + 1
+			features = addFeatures(pt1_index, features, contour, n, threshold)
+	return features
 
 if __name__ == '__main__': main()
