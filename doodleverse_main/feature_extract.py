@@ -4,22 +4,13 @@ from matplotlib import pyplot as plt
 np.set_printoptions(threshold=np.nan)
 
 def main():
-	 #import image as grayscale, if image is drawn by hand, cv2.threshold THRESH_BINARY assures it is blk/white
+	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-	raw_img = cv2.imread('shape1.png',0)
-	#ret,raw_img = cv2.threshold(raw_img,127,255,cv2.THRESH_BINARY) #incorrect parameters
+	raw_img, image, contours, hierarchy = importImage('shape1.png')
+	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 
 	#create grayscale (uint8) all white image to draw features onto
-	draw_img = 1*np.ones((raw_img.shape[0],raw_img.shape[1],1), np.uint8)
-
-	#find contours and select outermost contour that is not the border, input image must be black/white
-	#this only finds continuous contours, would need to change a setting if the image is U-shapped or something
-	image, contours, hierarchy = cv2.findContours(raw_img,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
-	cnt = contours[1] #cnt is m x 1 x n
-	draw_img = cv2.drawContours(draw_img, cnt, -1, 255, 1) #draw_img now has the contour drawn on it in black
-
-	#build mask for contour
-	mask = cv2.minAreaRect(cnt)
+	draw_img = drawImage(raw_img,cnt)
 
 	#grab extreme points of contour
 	extrema = getExtrema(cnt)
@@ -27,41 +18,87 @@ def main():
 	#use harris corner detector 
 	corners = getCorners(draw_img,10,0.1,50)
 	features = orderFeatures(cnt,extrema,corners)
-	#consolidate to best features 
-	max_error = 0.2
-	nom_error = 0.05
-	#features = consolidateFeatures(cnt,extrema,corners,max_error,nom_error)
-	#cnt_bi, spline_bi = findBisect(features[8,:],features[7,:],0.5,cnt)
+
+	#consolidate features
+	add_threshold = 0.2 #any normalized Error between features must be greater than this value for a new point to be added
+	remove_threshold = 0.4 #larger values mean less features will make it through
+	n = 5 #number of divisions for determining normalized error
+	index = 0 #default starting index 
+	new_features = addFeatures(index,features,cnt,n,add_threshold)
+	new_features = removeMidpoints(index,new_features,cnt,n,remove_threshold)
+	print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
+
 	#plot feature points
-	fig1 = plt.figure(1)
+	"""fig1 = plt.figure(1)
 	plt.imshow(draw_img.squeeze(),cmap='Greys')
 	plt.scatter(corners[:,0],corners[:,1],s=20,c='b',marker='x')
 	plt.plot(features[:,0],features[:,1])
 	#plt.scatter(extrema[:,0],extrema[:,1],s=20,c='r',marker='o')
 	plt.title('Feature Map')
-	print(features)
+	#print(features)
 	for i in range(1):
 		index1 = i
 		index2 = i+1
 		cnt_bi, spline_bi = findBisect(features[index1,:],features[index2,:],0.5,cnt)
-		normError = getNormError(features[index1,:],features[index2,:],cnt,5)
-		features = addFeatures(index1, features, cnt, 5, 0.5)
-		features = removeMidpoints(index1,features,cnt,5,0.2)
+		normError = getNormError(features[index1,:],features[index2,:],cnt,n)
+		features = addFeatures(index1, features, cnt, n, add_threshold)
+		features = removeMidpoints(index1, features, cnt, n, remove_threshold)
 		plt.plot(features[:,0],features[:,1],'r-')
-		print(features)
+		#print(features)
 		plt.scatter(cnt_bi[0,0],cnt_bi[0,1],s=15,c='r',marker='o')
 		plt.scatter(spline_bi[:,0],spline_bi[:,1],s=15,c='g',marker='o')
-	plt.show()
+	plt.show()"""
 
 	#print('\nCorners:\n', corners, '\n\nExtrema:\n',extrema,'\n\nOrdered:\n',features)
 
 
+	
 	#print('\n\ncontour bisect:\n',cnt_bi,'\n\nspline bisect: \n',spline_bi,'\n\nshape cntbi\n',cnt_bi.shape,'\n\nshape splinebi\n',spline_bi.shape,)
+"""
+raw_img, image, contours, hierarchy = importImage(image)
 
+Function purpose: imports image as black/white with contours 
 
+INPUTS: 
+image = typically a .png file (string)
+
+OUTPUTS:
+raw_img = raw image data points
+image = dummy
+contours = all contours in the image 
+hierarchy = ranking of the contours 
+
+PROBLEMS:
+none
+"""
+def importImage(image):
+	raw_img = cv2.imread('shape1.png',0)
+	image, contours, hierarchy = cv2.findContours(raw_img,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+	return raw_img, image, contours, hierarchy
+
+"""
+draw_img = drawImage(raw_img,contour)
+
+Function purpose: creates draw image variable that holds black/white data and the contours you pass to the function
+
+INPUTS: 
+raw_img = raw image from import image function
+contour = contours you pass to the function
+
+OUTPUTS:
+draw_img = black/white image of same shape as raw image with contours drawn on it 
+
+PROBLEMS:
+none
+"""
+def drawImage(raw_img,contour):
+	draw_img = 1*np.ones((raw_img.shape[0],raw_img.shape[1],1), np.uint8)
+	draw_img = cv2.drawContours(draw_img, contour, -1, 255, 1) #draw_img now has the contour drawn on it in black
+	return draw_img 
 
 """
 getExtrema(contour)
+
 Function purpose: Takes a contour and returns a 4x1 array with the left,right,top,bottom extreme points
 
 INPUTS: 
@@ -83,6 +120,7 @@ def getExtrema(contour):
 
 """
 getCorners(image,num_corners,quality_factor,min_dist)
+
 Function purpose: Takes an image and parameters to return normers in a 10x2 array of coordinates using Harris Corner Detector
 
 INPUTS:
@@ -104,41 +142,10 @@ def getCorners(image,num_corners,quality_factor,min_dist):
 	corners = corners.reshape(corners.shape[0],2)
 	return corners 
 
-"""
-consolidateFeatures(contour,extrema,corners,max_error,nominal_error)
-Function purpose: return an array of features that includes a minimum number of features that meet the error_bound when linearly splined
-
-INPUTS: 
-contour = contour point array that will be used as the basis of the error_bound
-features = ordered array of corners and extrema returned by the orderCorners() function
-max_error = maximum acceptable error (decimal 0 to 1) between linearly splined feature points and true contour connecting those feature points, normalized by distace between feature points
-nominal_error = small error level (decimal 0 to 1) between three feature points that is considered essentially nothing - ie the central feature point can be removed without any issues, normalized by distance between feature points
-
-OUTPUTS: 
-features = an ordered array of consolidated feature points in (x,y) coordinates
-
-PROBLEMS:
-1. not yet implemented
-"""
-def consolidateFeatures():
-	#REMOVE midpoints, 
-	#for each point, 
-	#	look at the point to the clockwise direction and check if the next two points are both on the same line (ie nominal error from pt1 to pt3 is not exceeded)
-	#	remove mid point as necessary and restart iteration until all midpoints are above nominal error
-
-	#ADD new points
-	#for each point, if error between point > max_error, perform recursive method:
-	#	add midpoint on contour connecting pt1 and pt2 = ptA
-	#	test errors e1 = error between pt1 and ptA, e2 = error between pt2 and ptA
-	#	if e1 and e2 both within max error, return. 
-	#	else, add midpoint between ptA and larger error point and test error between ptB and pt2 (if that had the high error)
-	#		continue testing error between new midpoint and pt2 until within max_error
-	#	add new midpoint to full feature set and restart iteration to add new points
-
-	return 
 
 """
 orderFeatures(contour,extrema,corners)
+
 Function purpose: return an ordered array of features 
 
 INPUTS: 
@@ -177,6 +184,7 @@ def orderFeatures(contour,extrema,corners):
 
 """ 
 dist = distance(point_1,point_2)
+
 Function purpose: return euclidian distance between points
 
 INPUTS: 
@@ -199,6 +207,7 @@ def distance(point_1,point_2):
 
 """ 
 cnt_bisect,spline_bisect = findBisect(point_1,point_2,percent_bisect,contour)
+
 Function purpose: return the bisection point on the contour between two points along with the [x,y] midpoint between the points themselves
 
 INPUTS: 
@@ -278,7 +287,9 @@ def findBisect(point_1,point_2,percent_bisect,contour):
 
 """ 
 normError = getNormError(point_1,point_2,contour,n)
+
 Function purpose: return the error between the contour and two features points normalized by the distance between feature points
+
 INPUTS: 
 point_1 = [x,y] array that can be shaped into a 1 by 2 array
 point_2 = [x,y] array that can be shaped into a 1 by 2 array
@@ -301,16 +312,16 @@ def getNormError(point_1,point_2,contour,n):
 		cnt_bisect, spline_bisect = findBisect(point_1,point_2,percent[i],contour)
 		absError = absError + distance(cnt_bisect,spline_bisect)
 	normError = absError / dist_p1p2
-	print('absError/dist_p1p2/normError: ', absError,' / ', dist_p1p2, ' / ', normError) 
+	#print('absError/dist_p1p2/normError: ', absError,' / ', dist_p1p2, ' / ', normError) 
 	return normError 
 
 """ 
-features = removeMidpoints(pt1_index, pt2_index, features, contour, n, threshold)
+features = removeMidpoints(pt1_index, features, contour, n, threshold)
+
 Function purpose: remove midpoints between features points that approximate the contour within some error threshold
 
 INPUTS: 
 pt1_index = index of feature array to start iteration 
-pt2_index = index of feature array to start iteration 
 features = set of feature points [x,y] indexed by pt1_index and pt2_index
 contour = contour point array [x,y]
 n = number of bisections to perform when calculation total error (ie n = 5 means bisections are used)
@@ -326,28 +337,42 @@ def removeMidpoints(pt1_index, features, contour, n, threshold):
 	#will need to add in wrap around ability and other indexing stuff
 	pt2_index = pt1_index + 1
 	if pt2_index < features.shape[0] - 1:
-		print(features.shape[0])
-		print('boom')
 		normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
 		normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
 		if normErr_13-normErr_12 < threshold:
-			print('bam')
 			features  = np.delete(features,(pt2_index),(0))
-			print(normErr_13-normErr_12)
 			features = removeMidpoints(pt1_index,features,contour,n,threshold)
-		else: #maybe dont do this in here
-			print('bing')
+		else: 
 			pt1_index = pt1_index+1
 			features = removeMidpoints(pt1_index,features,contour,n,threshold)
 	return features 
 
+""" 
+features = addFeatures(pt1_index, features, contour, n, threshold)
+
+Function purpose: adds features by bisecting feature pairs that have high normalized error
+
+INPUTS: 
+pt1_index = index of feature array to start iteration (use 0 to iterate through whole contour)
+features = set of feature points [x,y] indexed by pt1_index and pt2_index
+contour = contour point array [x,y]
+n = number of bisections to perform when calculation total error (ie n = 5 means bisections are used)
+threshold = error threshold for determining whether to add a bisection 
+
+OUTPUTS: 
+features = new array of feature points with redundant features removed
+
+PROBLEMS:
+1. 
+"""
 def addFeatures(pt1_index, features, contour, n, threshold):
 	pt2_index = pt1_index + 1
-	if pt2_index < features.shape[0] - 1:
+	if pt2_index < features.shape[0]:
 		#print(features.shape[0], ' wow')
 		normErr = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
-		if normErr > threshold and normErr < 10.0:
-			#print('whoops ',normErr)
+		#print('normErr: ', normErr)
+		if normErr > threshold and normErr < 1000:
+			#print('whoops ')
 			#do stuff 
 			cnt_bisect,spline_bisect = findBisect(features[pt1_index,:],features[pt2_index,:],0.5,contour)
 			features = np.insert(features, pt2_index, cnt_bisect, axis = 0 )
