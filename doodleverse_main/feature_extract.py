@@ -6,7 +6,7 @@ np.set_printoptions(threshold=np.nan)
 def main():
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-	raw_img, image, contours, hierarchy = importImage('shape1.png')
+	raw_img, image, contours, hierarchy = importImage('shape3.png')
 	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 
 	#create grayscale (uint8) all white image to draw features onto
@@ -20,40 +20,29 @@ def main():
 	features = orderFeatures(cnt,extrema,corners)
 
 	#consolidate features
-	add_threshold = 0.2 #any normalized Error between features must be greater than this value for a new point to be added
-	remove_threshold = 0.4 #larger values mean less features will make it through
-	n = 5 #number of divisions for determining normalized error
+	add_threshold = 0.5 #any normalized Error between features must be greater than this value for a new point to be added
+	remove_threshold = 0.5 #larger values mean less features will make it through
+	n = 4#number of divisions for determining normalized error
 	index = 0 #default starting index 
-	new_features = addFeatures(index,features,cnt,n,add_threshold)
-	new_features = removeMidpoints(index,new_features,cnt,n,remove_threshold)
+	num_features = 7
+	count = 0
+	#new_features = addFeatures(index,features,cnt,n,add_threshold)
+	#new_features = removeMidpoints(index,new_features,cnt,n,remove_threshold)
+	new_features = chooseNumFeatures(features, features, num_features, cnt, -1, n, add_threshold, remove_threshold, count)
 	print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
+	best_features_sorted = findKeyFeatures(new_features)
+	print(best_features_sorted)
+	print(new_features)
 
 	#plot feature points
-	"""fig1 = plt.figure(1)
+	fig1 = plt.figure(1)
 	plt.imshow(draw_img.squeeze(),cmap='Greys')
 	plt.scatter(corners[:,0],corners[:,1],s=20,c='b',marker='x')
 	plt.plot(features[:,0],features[:,1])
-	#plt.scatter(extrema[:,0],extrema[:,1],s=20,c='r',marker='o')
+	plt.plot(new_features[:,0],new_features[:,1],'r-')
 	plt.title('Feature Map')
-	#print(features)
-	for i in range(1):
-		index1 = i
-		index2 = i+1
-		cnt_bi, spline_bi = findBisect(features[index1,:],features[index2,:],0.5,cnt)
-		normError = getNormError(features[index1,:],features[index2,:],cnt,n)
-		features = addFeatures(index1, features, cnt, n, add_threshold)
-		features = removeMidpoints(index1, features, cnt, n, remove_threshold)
-		plt.plot(features[:,0],features[:,1],'r-')
-		#print(features)
-		plt.scatter(cnt_bi[0,0],cnt_bi[0,1],s=15,c='r',marker='o')
-		plt.scatter(spline_bi[:,0],spline_bi[:,1],s=15,c='g',marker='o')
-	plt.show()"""
+	plt.show()
 
-	#print('\nCorners:\n', corners, '\n\nExtrema:\n',extrema,'\n\nOrdered:\n',features)
-
-
-	
-	#print('\n\ncontour bisect:\n',cnt_bi,'\n\nspline bisect: \n',spline_bi,'\n\nshape cntbi\n',cnt_bi.shape,'\n\nshape splinebi\n',spline_bi.shape,)
 """
 raw_img, image, contours, hierarchy = importImage(image)
 
@@ -72,7 +61,7 @@ PROBLEMS:
 none
 """
 def importImage(image):
-	raw_img = cv2.imread('shape1.png',0)
+	raw_img = cv2.imread(image,0)
 	image, contours, hierarchy = cv2.findContours(raw_img,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
 	return raw_img, image, contours, hierarchy
 
@@ -383,5 +372,74 @@ def addFeatures(pt1_index, features, contour, n, threshold):
 			pt1_index = pt1_index + 1
 			features = addFeatures(pt1_index, features, contour, n, threshold)
 	return features
+
+""" 
+most_important_sorted = findKeyFeatures(features)
+
+Function purpose: finds the key features based on how much they account for the image correctness. Large distances betwen adjacent features and angles near pi/2 rad are considered most important. 
+
+INPUTS: 
+features = set of features points to determine most important features from 
+
+OUTPUTS: 
+most_important_sorted = returns nx2 [importance value, feature index] of sorted values by important
+
+PROBLEMS:
+1. 
+"""
+def findKeyFeatures(features):
+	most_important = np.zeros((features.shape[0]-1,2))
+	for k in range(features.shape[0] - 1):
+		kplus1 = k + 1
+		if k == 0:
+			kmin1 = features.shape[0] - 2 #k-1 term is the first term at the backend of the closed feature set that is not the 0th term
+		else:
+			kmin1 = k - 1
+		lmin1 = distance(features[k,:],features[kmin1,:])
+		lplus1 = distance(features[k,:],features[kplus1,:])
+		vec1 = features[kmin1,:] - features[k,:]
+		vec2 = features[kplus1,:] - features[k,:]
+		vec1_u = vec1/np.linalg.norm(vec1)
+		vec2_u = vec2/np.linalg.norm(vec2)
+		angle = np.arccos(np.dot(vec1_u,vec2_u))
+		if np.isnan(angle):
+			if vec1_u == vec2_u:
+				angle = 0.0
+			else:
+				angle = np.pi
+		most_important[k,0] = int((lmin1 + lplus1)*np.sin(angle))
+		most_important[k,1] = int(k) 
+		most_important_sorted = sorted(most_important,key=lambda x: x[0], reverse = True)
+		most_important_sorted = np.array(most_important_sorted)
+	return most_important_sorted
+	#most_important = np.arrange(most_important)
+	#need to order in reverse but retain which index
+
+def chooseNumFeatures(old_features, features, num_features,contour,last, n, add_thresh, remove_thresh, count):
+	index = 0
+	count = count + 1
+	if count > 10:
+		return features
+	print('features/addthresh/removethresh: ', features.shape[0], add_thresh, remove_thresh, last)
+	if features.shape[0] == num_features:
+		return features
+	if features.shape[0] < num_features:
+		#if last == 1: 
+			#add_thresh = add_thresh /2 
+			#add_thresh = add_thresh + 0.1
+		if last == -1: 
+			remove_thresh = remove_thresh - 0.1
+	elif features.shape[0] > num_features:
+		#if last == 1: 
+			#add_thresh = add_thresh - 0.1
+		if last == -1: 
+			#add_thresh = add_thresh/2
+			remove_thresh = remove_thresh + 0.25
+	last = -1*last 
+	features = addFeatures(index,old_features,contour,n,add_thresh)
+	features = removeMidpoints(index,old_features,contour,n,remove_thresh)
+	features = chooseNumFeatures(old_features, features, num_features, contour, last, n, add_thresh, remove_thresh,count)
+	return features 
+
 
 if __name__ == '__main__': main()
