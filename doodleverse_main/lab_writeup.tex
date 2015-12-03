@@ -1,0 +1,83 @@
+\documentclass[paper=a4, fontsize=11pt]{scrartcl} % A4 paper and 11pt font size
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+%\usepackage{fourier} % Use the Adobe Utopia font for the document - comment this line to return to the LaTeX default
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage{advdate} %other dates than today
+\usepackage{sectsty} % Allows customizing section commands
+%\allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
+\usepackage{geometry}
+\usepackage{listings} %allows to print code
+\usepackage[per-mode=symbol]{siunitx} %units (hertz)
+\usepackage{graphicx} %allows images
+\usepackage{epstopdf} %enables eps in pdfs
+\usepackage{float} %fixes images
+\usepackage{caption} %allows changing captions
+\usepackage{polynom} %polynomial long division
+%hobbled together long division?
+\usepackage[display]{texpower}
+
+\newcommand{\ldsym}{$\left.\mathstrut\right)$}% unbalanced )
+\newlength{\ldwidth}
+
+\newcommand{\longdivide}[2]% #1 = denominator, #2 = numerator
+{\settowidth{\ldwidth}{\ldsym}
+$#1\,\raisebox{1.5pt}{\ldsym}\hspace*{-.65\ldwidth}\overline{
+\mathstrut\hspace*{.35\ldwidth}\ #2}$}
+
+\usepackage{fancyhdr} % Custom headers and footers
+\pagestyle{fancyplain} % Makes all pages in the document conform to the custom headers and footers
+\fancyhead{} % No page header - if you want one, create it in the same way as the footers below
+\fancyfoot[L]{} % Empty left footer
+\fancyfoot[C]{} % Empty center footer
+\fancyfoot[R]{\thepage} % Page numbering for right footer
+\renewcommand{\headrulewidth}{0pt} % Remove header underlines
+\renewcommand{\footrulewidth}{0pt} % Remove footer underlines
+\setlength{\headheight}{0pt} % Customize the height of the header
+
+%\setlength\parindent{0pt} % Removes all indentation from paragraphs
+
+\setlength{\parskip}{.5cm} % space between paragraphs
+
+%margins
+\geometry{a4paper, top=1in, left=1in, right=1in, bottom=1.4in, includehead, includefoot}
+
+%Don't number sections
+%\renewcommand{\thesection}
+
+%Don't bold section headings
+%\sectionfont{}
+%\subsectionfont{\textnormal}
+
+\lstset{basicstyle=\ttfamily\small,xleftmargin=-1cm,xrightmargin=-2cm,breaklines=true} %settings and font for code
+
+\renewcommand{\thesubsection}{\alph{subsection}} %Lettered subsections
+\renewcommand{\thesubsubsection}{\roman{subsubsection}} %lower case roman numeral subsubsections
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % Create horizontal rule command with 1 argument of height
+
+\DeclareMathOperator*{\argmin}{arg\,min} %argmin
+
+\title{
+\normalfont \normalsize
+\huge The Doodle Verse \\ % The assignment title
+}
+\date{}
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+\section{Overview}
+
+\section{Warmup}
+
+\subsection{Procrustes}
+Here we address the problem of finding the ideal transformation $T$ between our set of feature points $F$ and a predetermined subset of stars $S\subset \mathbb{S}$. Here we are assuming $F$ and $S$ are the same size $(k\times2)$ and represent their respective collections of points in Cartesian coordinates. We want to preserve the shape of $F$, and for now let's assume we also don't want to change the scale of $F$: our transformation will preserve distances and angles between points (and thus the shape). This simplifies the problem because it constrains $T$ to be orthogonal. Precisely, we are looking for the orthogonal $T$ that minimizes $||FT-S||_F$.
+
+\section{Lab}
+
+
+
+
+
+\end{document}
