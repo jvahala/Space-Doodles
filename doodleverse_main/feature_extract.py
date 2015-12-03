@@ -6,8 +6,9 @@ np.set_printoptions(threshold=np.nan)
 def main():
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-	raw_img, image, contours, hierarchy = importImage('shape3.png')
+	raw_img, image, contours, hierarchy = importImage('shape1.png')
 	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
+
 
 	#create grayscale (uint8) all white image to draw features onto
 	draw_img = drawImage(raw_img,cnt)
@@ -20,15 +21,15 @@ def main():
 	features = orderFeatures(cnt,extrema,corners)
 
 	#consolidate features
-	add_threshold = 0.5 #any normalized Error between features must be greater than this value for a new point to be added
+	add_threshold = 0.3 #any normalized Error between features must be greater than this value for a new point to be added
 	remove_threshold = 0.5 #larger values mean less features will make it through
-	n = 4#number of divisions for determining normalized error
+	n = 5#number of divisions for determining normalized error
 	index = 0 #default starting index 
-	num_features = 7
+	#num_features = 7
 	count = 0
-	#new_features = addFeatures(index,features,cnt,n,add_threshold)
-	#new_features = removeMidpoints(index,new_features,cnt,n,remove_threshold)
-	new_features = chooseNumFeatures(features, features, num_features, cnt, -1, n, add_threshold, remove_threshold, count)
+	new_features = addFeatures(index,features,cnt,n,add_threshold)
+	new_features = removeMidpoints(index,new_features,cnt,n,remove_threshold)
+	#new_features = chooseNumFeatures(features, features, num_features, cnt, -1, n, add_threshold, remove_threshold, count)
 	print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
 	best_features_sorted = findKeyFeatures(new_features)
 	print(best_features_sorted)
@@ -171,6 +172,36 @@ def orderFeatures(contour,extrema,corners):
 					feat_it = 2
 	return features
 
+""" 
+contour = cleanContour(contour)
+
+Function purpose: turn contour into a set of points the same average distance apart
+
+INPUTS: 
+contour = (x,y) ordered coordinates of the contour shape
+
+OUTPUTS: 
+contour = (x,y) ordered coordinates with similar distance between points
+
+PROBLEMS:
+1. 
+
+def cleanContour(contour):
+	total_dist = 0
+	cnt_length = contour.shape[0]-1
+	for i in range(contour.shape[0]-1):
+		total_dist = total_dist + distance(contour[i,:],contour[i+1,:])
+	avg_dist = total_dist/contour.shape[0]
+	k = 0
+	while k < cnt_length:
+		while distance(contour[k,:],contour[k+1,:]) < avg_dist:
+			print(contour.shape[0])
+			if k < cnt_length-2:
+				contour = np.delete(contour, i, 0)
+		cnt_length = contour.shape[0] - 1
+		k = k + 1
+	return contour
+"""
 """ 
 dist = distance(point_1,point_2)
 
