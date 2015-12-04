@@ -7,29 +7,28 @@ def main():
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
 	raw_img, image, contours, hierarchy = importImage('shape1.png')
-	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
-
+	cnt = contours[2] #contour zero is border, contour 1 is outermost contour, ...etc
+	cnt2 = cleanContour(cnt) #makes distances between contour points more even
 
 	#create grayscale (uint8) all white image to draw features onto
-	draw_img = drawImage(raw_img,cnt)
+	draw_img = drawImage(raw_img,cnt2)
 
 	#grab extreme points of contour
-	extrema = getExtrema(cnt)
+	extrema = getExtrema(cnt2)
 
 	#use harris corner detector 
 	corners = getCorners(draw_img,10,0.1,50)
-	features = orderFeatures(cnt,extrema,corners)
+	features = orderFeatures(cnt2,extrema,corners)
 
 	#consolidate features
-	add_threshold = 0.3 #any normalized Error between features must be greater than this value for a new point to be added
-	remove_threshold = 0.5 #larger values mean less features will make it through
-	n = 5#number of divisions for determining normalized error
-	index = 0 #default starting index 
-	#num_features = 7
+	add_threshold = 0.5 #smaller values add more points (0.5 default)
+	remove_threshold = 0.5 #larger values mean less points (0.5 default)
+	n = 8#number of divisions for determining normalized error (8 default)
+	index = 0 #default starting index (0 default)
+
 	count = 0
-	new_features = addFeatures(index,features,cnt,n,add_threshold)
-	new_features = removeMidpoints(index,new_features,cnt,n,remove_threshold)
-	#new_features = chooseNumFeatures(features, features, num_features, cnt, -1, n, add_threshold, remove_threshold, count)
+	new_features = addFeatures(index,features,cnt2,n,add_threshold)
+	new_features = removeMidpoints(index,new_features,cnt2,n,remove_threshold)
 	print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
 	best_features_sorted = findKeyFeatures(new_features)
 	print(best_features_sorted)
@@ -181,27 +180,33 @@ INPUTS:
 contour = (x,y) ordered coordinates of the contour shape
 
 OUTPUTS: 
-contour = (x,y) ordered coordinates with similar distance between points
+contour = (x,y) ordered coordinates with similar distance between points, slightly less error invloved
 
 PROBLEMS:
 1. 
-
+"""
 def cleanContour(contour):
 	total_dist = 0
 	cnt_length = contour.shape[0]-1
-	for i in range(contour.shape[0]-1):
-		total_dist = total_dist + distance(contour[i,:],contour[i+1,:])
-	avg_dist = total_dist/contour.shape[0]
-	k = 0
-	while k < cnt_length:
-		while distance(contour[k,:],contour[k+1,:]) < avg_dist:
-			print(contour.shape[0])
-			if k < cnt_length-2:
-				contour = np.delete(contour, i, 0)
-		cnt_length = contour.shape[0] - 1
-		k = k + 1
-	return contour
-"""
+	new_contour = contour[0,:]
+	for k in range(cnt_length):
+		dist_pts = distance(contour[k,:],contour[k+1,:])
+		if dist_pts > .99 and dist_pts < 1.01:
+			new_contour = np.vstack((new_contour,contour[k,:]))
+		elif dist_pts > 1.41 and dist_pts <1.42:
+			point_1 = contour[k,:]
+			point_2 = contour[k,:]
+			point_1.shape = (1,2)
+			point_2.shape = (1,2)
+			percent_bisect = 0.5
+			x_spline = int(point_1[0,0] - (point_1[0,0] - point_2[0,0])*(1-percent_bisect))
+			y_spline = int(point_1[0,1] - (point_1[0,1] - point_2[0,1])*(1-percent_bisect))
+			spline_bisect = np.array([x_spline,y_spline])
+			spline_bisect.shape = (1,2)
+			new_contour = np.vstack((new_contour,spline_bisect,contour[k,:]))
+	new_contour.shape = (new_contour.shape[0],1,2)
+	return new_contour 
+
 """ 
 dist = distance(point_1,point_2)
 
@@ -443,8 +448,7 @@ def findKeyFeatures(features):
 		most_important_sorted = sorted(most_important,key=lambda x: x[0], reverse = True)
 		most_important_sorted = np.array(most_important_sorted)
 	return most_important_sorted
-	#most_important = np.arrange(most_important)
-	#need to order in reverse but retain which index
+
 
 def chooseNumFeatures(old_features, features, num_features,contour,last, n, add_thresh, remove_thresh, count):
 	index = 0
