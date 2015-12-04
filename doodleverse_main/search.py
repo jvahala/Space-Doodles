@@ -8,7 +8,7 @@ from scipy import spatial
 class StarTable:
     def __init__(self, file = 'hyg_catalog.fits'):
         self.tab = table.Table.read(file, format = 'fits')
-        #convert hours to degrees for "RA"
+        # convert hours to degrees
         self.tab['RA'] = self.tab['RA']*15
         
     def ClosestStars(self, center_index, radius):
@@ -50,6 +50,7 @@ class StarTable:
         starsxy = []
         
         for i in range(len(subtab)):
+            #convert hours/degrees to radians
             ra = np.deg2rad(subtab['RA'][i])
             dec = np.deg2rad(subtab['Dec'][i]) - c_dec
             
@@ -204,7 +205,7 @@ class SetOfPoints:
         V = VT.T
         
         #get optimal scaling
-        scale = np.sum(s)*Bnorm/Anorm
+        scale = trE*Bnorm/Anorm
         
         R = np.dot(V,U.T)
         
@@ -292,7 +293,8 @@ def Search(star_tab, featset):
     # Pick random index of star to search around.
     center = np.random.randint(len(star_tab.tab))
     # Get subtable of stars near center star.
-    m = star_tab.ClosestStars(center,20)
+    search_radius = 20
+    m = star_tab.ClosestStars(center,search_radius)
     closest_subtable = star_tab.tab[m]
 
     # Convert from spherical to cartesian using mollweide projection
@@ -315,7 +317,8 @@ def Search(star_tab, featset):
     centerstar_index = star_subset.points[centerstar].index
 
     #get new table of stars around center star
-    m = star_tab.ClosestStars(centerstar_index,50)
+    # twice as big as original search radius
+    m = star_tab.ClosestStars(centerstar_index,search_radius*2)
     closest_subtable = star_tab.tab[m]
 
     #convert from spherical to mollweide projection

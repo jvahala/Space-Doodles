@@ -88,7 +88,7 @@ One issue is that our extracted feature points will have Cartesian coordinates a
 0.15280269  59.15021814    2.28
 0.15583908  -27.9879039    5.42
 \end{lstlisting}
-The "RA" or measures the distance from a central meridian and ranges from $0\si{\degree}$ to $360\si{\degree}$.
+The "RA" or "right ascension" measures the distance from a central meridian and ranges from $0$ hours to $24$ hours (which corresponds to $0\si{\degree}-360\si{\degree}$). To convert to degrees we need to multiply this column by $15$.
 The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$.
 
 To convert from spherical coordinates to Cartesian coordinates, we need to pick a center point and project the stars in the neighborhood of this point onto a plane.  If we attempt to project all or most of the stars, this will distort the stars far from our center point, which would be undesirable considering we are trying to match shapes.  This restricts our search to small neighborhoods at a time.
@@ -98,18 +98,41 @@ $$
 x = R\frac{2\sqrt{2}}{\pi}(\lambda-\lambda_c)cos(\theta)$$$$
 y = R\sqrt{2}sin(\theta)
 $$
-Where $\theta$ is the angle defined by: $2\theta + sin(2\theta)=\pi sin(\phi-\phi_c)$.  Since $\theta$ is implicitly defined, we cannot solve for it directly. But the following iteration will converge to its value quickly (it converges slow for points far from our center point, but that is not a concern for us).
+Where $\theta$ is the angle defined by: $2\theta + sin(2\theta)=\pi sin(\phi-\phi_c)$.  Since $\theta$ is implicitly defined, we cannot solve for it directly. But the following iteration will converge to its value after a few iterations (it converges slow for points far from our center point, but that is not a concern for us).
 $$
 \theta_0 = \phi-\phi_c
 $$$$
 \theta_{k+1} = \theta_k + \frac{2\theta_k+sin(2\theta_k)-\pi(sin\phi-\phi_c)}{2+2cos(2\theta_k)}
 $$
 
-Right a script that does this?
+Right a script that does this?  Make sure to convert to radians!
 
 
 \subsection{Procrustes}
-Here we address the problem of finding the ideal transformation $T$ between our set of feature points $F$ and a predetermined subset of stars $S\subset \mathbb{S}$. Here we are assuming $F$ and $S$ are the same size $(k\times2)$ and represent their respective collections of points in Cartesian coordinates. We want to preserve the shape of $F$, and for now let's assume we also don't want to change the scale of $F$: our transformation will preserve distances and angles between points (and thus the shape). This simplifies the problem because it constrains $T$ to be orthogonal. Precisely, we are looking for the orthogonal $T$ that minimizes $||FT-S||_F$.
+Here we address the problem of finding the ideal transformation $T$ between our set of feature points $F$ and a predetermined subset of stars $S\subset \mathbb{S}$. Here we are assuming $F$ and $S$ are the same size $(2\times k)$ and represent their respective collections of points in Cartesian coordinates (each column is a point).
+
+We want to preserve the shape of $F$, and for now let's assume $S$ and $F$ are normalized, so we don't want to change the scale of $F$: our transformation will preserve distances and angles between points (and thus the shape). This simplifies the problem because it constrains $T$ to be orthogonal. Also, let's assume that both sets of points are centered around the origin (i.e. their mean is $\begin{bmatrix}
+0\\
+0
+\end{bmatrix}$). Basically, we are looking for the best rotation of $F$ that minimizes the distance between its points and the points in $S$. Precisely, we are looking for the orthogonal $T$ that minimizes $||TF-S||^2_F$.
+
+Let $U\Sigma V^T$ be the SVD of the matrix $SF^T$. Show that the orthogonal $T$ that minimizes $||TF-S||^2_F$ is equal to $UV^T$.
+
+Hint: one proof takes advantage of the symmetry of the Frobenius inner product:
+$$tr(AB^T) = \langle A,B\rangle_F = \langle B,A\rangle_F = tr(BA^T)$$
+Also remember that multiplying a vector by an orthogonal matrix doesn't change its Frobenius norm.
+
+Now let's generalize this to our actual problem: how do we find such a transformation when the sets of points are not normalized or centered around the origin?  First, it's easy to reduce to problem to the previous case by normalizing $F$ and $S$ and shifting them by their mean:
+
+$$
+\hat{F} = \frac{F}{||F||_F} - mean(F)\quad\textrm{ and }\quad\hat{S} = \frac{S}{||S||_F} - mean(S)
+$$
+
+Now we can easily find the matrix $\hat{T}$ that minimizes $||\hat{T}\hat{F}-\hat{S}||_F$.
+
+Write a formula to find $F^*$, the transformed set of points that most closely matches $S$.
+
+Hint: we want $mean(F^*) = mean(S)$ and $||F^*||_F=||S||_F$ to ensure the transformed points are centered around the same point and have the same scale.
 
 \section{Lab}
 
