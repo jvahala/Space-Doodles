@@ -8,6 +8,8 @@ from scipy import spatial
 class StarTable:
     def __init__(self, file = 'hyg_catalog.fits'):
         self.tab = table.Table.read(file, format = 'fits')
+        #convert hours to degrees for "RA"
+        self.tab['RA'] = self.tab['RA']*15
         
     def ClosestStars(self, center_index, radius):
         """
@@ -19,6 +21,14 @@ class StarTable:
         tDec = self.tab['Dec']
         cRA = np.array([self.tab['RA'][center_index]])
         cDec = np.array([self.tab['Dec'][center_index]])
+        
+        # Shift stars over if near edge (spherematch doesn't wrap)
+        if cRA-radius < 0 or cRA+radius > 360:
+            tRA = (tRA + 180)%360
+            cRA = (cRA + 180)%360
+        if cDec-radius < -90 or cDec+radius > 90:
+            cDec = (cDec+180)%180-90
+            tDec = (tDec+180)%180-90
         
         m = spherematch(tRA, tDec, cRA, cDec, maxmatch = 0, matchlength = radius)
 
@@ -76,7 +86,10 @@ class Point:
         
 class SetOfPoints:    
     def GetAngles(self, verts = [0,1,2]):
-        '''get angles between vertices specified by verts (defaults to first three points)'''
+        '''
+        get angles between vertices specified by
+        verts (defaults to first three points)
+        '''
         d = np.zeros((3))
         ab = self.points[verts[0]].pos-self.points[verts[1]].pos
         ac = self.points[verts[0]].pos-self.points[verts[2]].pos
@@ -93,19 +106,29 @@ class SetOfPoints:
         return a
         
     def GetMatrix(self):
-        '''returns position data for all points in set in the form of a nx2 matrix'''
+        '''
+        returns position data for all points in set in the form of a
+        nx2 matrix (nx3 if matrix of stars, 3rd col being brightness)
+        '''
         return np.array([self.points[i].pos for i in range(len(self.points))])
         
     def GetLength(self):
         return len(self.points)
         
         
-    def GetSubset(self, subsize = 3, indices = None):
-        '''generates subset of StarSet, either random or specified by indices'''
-        if indices is None:
-            subset = np.random.choice(self.points, subsize, replace=False)
+    def GetSubset(self, subsize = 3, indices = None, greatestMag = None):
+        '''
+        generates subset of StarSet, either random or specified by indices
+        '''
+        if greatestMag is not None:
+            bright_points = [self.points[i] for i in len(self.points) if self.points[i].bright < greatestMag][0]
         else:
-            subset = [self.points[i] for i in indices]
+            bright_points = self.points
+        
+        if indices is None:
+            subset = np.random.choice(bright_points, subsize, replace=False)
+        else:
+            subset = [bright_points[i] for i in indices]
 
         if type(self) is StarSet:
             return StarSet(data = subset)
@@ -128,8 +151,14 @@ class SetOfPoints:
         num_tries = 0
         
         while True:
+
+            #bright_subset = starset.GetSubset(greatestMag = 10)
+            #sub_verts = np.random.choice(bright_subset.GetLength(),3,replace=False)
+            #sub_angles = bright_subset.GetAngles(verts = sub_verts)
+            
             sub_verts = np.random.choice(starset.GetLength(),3,replace=False)
             sub_angles = starset.GetAngles(verts = sub_verts)
+
             error = np.linalg.norm(sub_angles - feat_angles)
             if error < epsilon: break
             sub_angles = sub_angles[[1,2,0]]
@@ -149,6 +178,8 @@ class SetOfPoints:
     def Procrustes(self, target, selfindices = [0,1,2]):
         '''
         Finds the matrix that ideally maps points of self to points of target
+        For self, chooses points indexed by "selfindices" (defaults
+        to first 3 points)
         '''
         
         A = self.GetMatrix()[selfindices,0:2]
@@ -176,8 +207,6 @@ class SetOfPoints:
         scale = np.sum(s)*Bnorm/Anorm
         
         R = np.dot(V,U.T)
-        
-        A0prime = np.dot(A0,R)
         
         T = meanB - scale*np.dot(meanA,R)
         
@@ -263,7 +292,7 @@ def Search(star_tab, featset):
     # Pick random index of star to search around.
     center = np.random.randint(len(star_tab.tab))
     # Get subtable of stars near center star.
-    m = star_tab.ClosestStars(center,10)
+    m = star_tab.ClosestStars(center,20)
     closest_subtable = star_tab.tab[m]
 
     # Convert from spherical to cartesian using mollweide projection
@@ -286,7 +315,7 @@ def Search(star_tab, featset):
     centerstar_index = star_subset.points[centerstar].index
 
     #get new table of stars around center star
-    m = star_tab.ClosestStars(centerstar_index,15)
+    m = star_tab.ClosestStars(centerstar_index,50)
     closest_subtable = star_tab.tab[m]
 
     #convert from spherical to mollweide projection
@@ -294,7 +323,7 @@ def Search(star_tab, featset):
     searchM = search_subset.GetMatrix()
 
     # Get closest points to feature points in new search subset
-    """MAKE MORE EFFICIENT BY ALLOWING CLOSESTSTAR TO DO MULTIPLE POINTS AT ONCE"""
+    """MAKE MORE EFFICIENT BY ALLOWING GETCLOSESTSTAR TO DO MULTIPLE POINTS AT ONCE"""
     matchMprime = []
     for i in range(featset.GetLength()):
         closest_star = search_subset.GetClosestStar(featMprime[i,:])
@@ -307,10 +336,13 @@ def Search(star_tab, featset):
     starM = star_subset.GetMatrix()
     matchM = match.GetMatrix()
 
+    lbound = min(min(featM[:,0]),min(featM[:,1]))
+    ubound = max(max(featM[:,0]),max(featM[:,1]))   
+
     plt.figure()
     plt.scatter(featM[:,0],featM[:,1])
-    plt.xlim([0,1])
-    plt.ylim([0,1])
+    plt.xlim([lbound,ubound])
+    plt.ylim([lbound,ubound])
     plt.show()
     
     plt.figure()

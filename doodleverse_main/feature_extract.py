@@ -22,7 +22,7 @@ def main():
 
 	#consolidate features
 	add_threshold = 0.3 #any normalized Error between features must be greater than this value for a new point to be added
-	remove_threshold = 0.5 #larger values mean less features will make it through
+	remove_threshold = 0.2 #larger values mean less features will make it through
 	n = 5#number of divisions for determining normalized error
 	index = 0 #default starting index 
 	#num_features = 7
