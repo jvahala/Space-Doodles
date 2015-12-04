@@ -21,11 +21,19 @@ def main():
 	features = orderFeatures(cnt2,extrema,corners)
 
 	#consolidate features
+<<<<<<< HEAD
 	add_threshold = 0.5 #smaller values add more points (0.5 default)
 	remove_threshold = 0.5 #larger values mean less points (0.5 default)
 	n = 8#number of divisions for determining normalized error (8 default)
 	index = 0 #default starting index (0 default)
 
+=======
+	add_threshold = 0.3 #any normalized Error between features must be greater than this value for a new point to be added
+	remove_threshold = 0.2 #larger values mean less features will make it through
+	n = 5#number of divisions for determining normalized error
+	index = 0 #default starting index 
+	#num_features = 7
+>>>>>>> f656289fbc7016ac0ccc9175aaed4a798d362f61
 	count = 0
 	new_features = addFeatures(index,features,cnt2,n,add_threshold)
 	new_features = removeMidpoints(index,new_features,cnt2,n,remove_threshold)
