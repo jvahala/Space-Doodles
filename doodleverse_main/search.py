@@ -205,7 +205,7 @@ class SetOfPoints:
         V = VT.T
         
         #get optimal scaling
-        scale = trE*Bnorm/Anorm
+        scale = Bnorm/Anorm
         
         R = np.dot(V,U.T)
         
