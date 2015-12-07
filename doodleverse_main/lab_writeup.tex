@@ -99,7 +99,7 @@ showstringspaces=false
 
 \title{
 \normalfont \normalsize
-\huge The Doodle Verse \\ % The assignment title
+\huge The DoodleVerse \\ % The assignment title
 }
 \date{}
 
@@ -119,13 +119,13 @@ memory. The ancient Greeks gave us most of our modern constellations: for exampl
 hunter, but the Lakota constellation of the Hand is roughly coincident (and consists of many of the same
 stars). Could we take an arbitrary constellation, and then find a set of stars that fit it? In this lab, we’ll
 explore how to take a set of about 1000 bright stars, and construct spectacular celestial displays of your own
-design. Welcome to the Doodle Verse!
+design. Welcome to the DoodleVerse!
 
 \section{Overview}
 
 The problem can be broken up into two main tasks: (1) taking the input image and extracting the ideal feature points, and (2) finding the ideal set of stars whose formation matches this set of feature points.
 
-For the first task, we must perform a series of image processing steps to separate an image into a set of feature points. We must (a) define the image contours as sets of $k$ (x,y) coordinates that accurately depict the original image, and (b) reduce each contour into sets of $n<k$ (x,y) cooridinates that does not substantially degrade the original image representation. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$ where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. 
+For the first task, we must perform a series of image processing steps to separate an image into a set of feature points. We must (a) define the image contours as sets of $k$ (x,y) coordinates that accurately depict the original image, and (b) reduce each contour into sets of $n<k$ (x,y) cooridinates that does not substantially degrade the original image representation. We do this by comparing the original contour to a linear spline connecting individual feature points and adding or removing points as necessary. 
 
 For the second task, we start by framing it as an optimization problem. If $\mathbb{S}$ is our set of stars and $F$ is the matrix defined by our feature points, then we are looking for the subset $S\subset\mathbb{S}$ that minimizes the following: $||TF - S||_F$.  Here $T$ is a map from the Cartesian "feature space" to the space that our stars lie in that preserves the shape of our feature points (i.e. doesn't distort angles and relative distances).
 
@@ -136,16 +136,20 @@ The number of stars in our $\mathbb{S}$ set (which has been restricted to stars 
 
 In order to find a set of $n$ feature points of a drawing, we first need to turn the drawing into a set of contours from which we will get our feature points. In order to accomplish this, we need some form of edge detector. 
 
-Algorithm used for finding contours involves a border following technique defined in this paper \cite{Suzuki1985}
+Algorithm used for finding contours involves a border following technique defined in this paper \cite{Suzuki1985}. The use of this technique is shown in Figure \ref{feat_detect}(b). 
+
+\fbox{\begin{minipage}{40em}
+\textbf{For a simple image, say a triangle with a black 1 pixel wide edge on a white background, suggest a reasonable edge detector to find the contour of the image. Why might a simple edge detector be "good enough" for this application?}
+\end{minipage}}
 
 Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector.
 
 Harris Corner Detection
 
-When we’re designing computer programs to work with images, it is necessary to be able to map between two images of the same (or very similar) objects. In order to do this, we need to be able to reliably extract uniquely recognizable points in each image---we call these features. In particular, we’ll talk about corners here. Corners can be thought of as the intersection of two edges, so the gradient of the image will be large in both directions. In particular, if the function $I(x, y)$ represents the intensity of an image at position $(x, y)$, then we want to maximize $E(u, v) = \sum_{x,y} w(x, y) [I(x+u, y+v) - I(x, y)]^2$, where $w(x, y)$ is the window over which we’re looking at position $(x, y)$ and $(u, v)$ are the half-widths of the window in the $x$ and $y$ directions. After a Taylor expansion and some algebra, we can express $E$ as 
+When we’re designing computer programs to work with images, it is necessary to be able to map between two images of the same (or very similar) objects. In order to do this, we need to be able to reliably extract uniquely recognizable points in each image---we call these features. In particular, we’ll talk about corners here. Corners can be thought of as the intersection of two edges, so the gradient of the image will be large in both directions. In particular, if the function $I(x, y)$ represents the intensity of an image at position $(x, y)$, then we want to maximize $J(u, v) = \sum_{x,y} w(x, y) [I(x+u, y+v) - I(x, y)]^2$, where $w(x, y)$ is the window over which we’re looking at position $(x, y)$ and $(u, v)$ are the half-widths of the window in the $x$ and $y$ directions. After a Taylor expansion and some algebra, we can express $J$ as 
 
 $$
-E(u, v) \approx \begin{bmatrix}
+J(u, v) \approx \begin{bmatrix}
 u & v
 \end{bmatrix} M \begin{bmatrix}
 u\\
@@ -167,25 +171,34 @@ R = [det(M) - k(Tr(M)]^2
 $$
 Furthermore, $det(M)$ and $Tr(M)$ can be expressed in terms of the eigenvalues $\lambda_1$ and $\lambda_2$: $det(M) = \lambda_1 \times \lambda_2$ and $Tr(M) = \lambda_1 + \lambda_2$. In summary, your results for Harris corner detection may still vary, depending on your choice of $u$, $v$, and $R$.
 
-The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set to fine tune by other methods, which is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include the top-most, right-most, bottom-most, and left-most features of the contour so that we are assured that at least four of the features will likely be useful. In adding these features, we now have a set of $m+4$ features to narrow down. 
+The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set of feature points as shown in Figure \ref{feat_detect}(c). This set can be fine tuned by additional methods to find better feature points. This is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include a set of points that will exist for any contour so that the shape will at least have a minimal representation.  
 
-Finally, in order to turn our $m+4$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. The algorithm is defined below. Note that the order does not greatly affect the final result of the feature set and that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
+\fbox{\begin{minipage}{40em}
+\textbf{Determine a small set of features points that will exist for any two-dimensional shape.}
+\end{minipage}}
 
-N-feature selection algorithm: 
+Finally, in order to turn our $m$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$ where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. The algorithm is defined below. Note that the order does not greatly affect the final result of the feature set and that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
+
+N-feature selection algorithm (see Figure \ref{feat_detect}(d) for example of reducing an $m = 12$ point set to an $n = 8$ point set): 
 \begin{enumerate}
 	\item 
-	For all points $p_i$ in the set of $m+4$ features, find normalized error $E_i$ between $p_{i-1}$ and $p_{i+1}$. If $E_i < t_{delete}$, remove $E_i$ from the set of feature points. Else, move on to the next point. until all redundant points $j$ have been removed and your new set is composed of $y = m - j$ points.  
+	For all points $p_i$ in the set of $m$ features, find normalized error $E_i$ between $p_{i-1}$ and $p_{i+1}$. If $E_i < t_{delete}$, remove $p_i$ from the set of feature points. Else, move on to the next point. until all redundant points $j$ have been removed and your new set is composed of $y = m - j$ points.  
 	\item
 	For all points $p_i$ in the set of $y$ features, find normalized error $E_i$ between $p_{i}$ and $p_{i+1}$. If $E_i > t_{add}$, then add a new feature point along the contour at the bisecting point and test this new point to check if it meets the $t_{add}$ criterion. Else, move on to the next point. When finished, the new set of feature points is composed of $n = y + r$ points, where $r$ is the number of points added by this step. 
 \end{enumerate}
 
-Finally, because our approach for matching feature points to stars is based upon a version of triangular mapping, we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. 
+\fbox{\begin{minipage}{40em}
+\textbf{With the star dataset being used in this application taken into consideration, why is it so important to represent the shape in as few feature points as possible?}
+\end{minipage}}
+
+Finally, because our approach for matching feature points to stars is based upon a version of triangular mapping, we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{p_i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. An example of the key feature points is identified in Figure \ref{feat_detect}(d). 
 
 \pagebreak
 
 \begin{figure}
 \center{\includegraphics[scale=0.8]{feature_detection.png}}
-\caption{}
+\caption{(a) Original Image, (b) Contour of shape determined by \cite{Suzuki1985}, (c) Basic feature points determined by Harris Corner Detector, (d) Optimized feature points determined by thresholding algorithm with key feature points explicitly identified}
+\label{feat_detect}
 \end{figure}
 
 
@@ -351,18 +364,19 @@ Now we have our set of feature points $[f_1,\ldots,f_n]=F$, our possible match s
 
 
 \section{Lab}
-You have been supplied: diamond.png and a star dataset. Perform the following: 
+You have been supplied: diamond.png (see Figure \ref{diamond}) and a star dataset. Perform the following: 
 
 \begin{figure}
 \center{\includegraphics[scale=0.5]{diamond.png}}
 \caption{diamond.png}
+\label{diamond}
 \end{figure}
 
 \begin{enumerate}
   \item
-  Import diamond.png to your program of choice (MATLAB or Python). What is a good way to get a set of $k$ feature points from this image? How important is the edge detector your choose for this circumstance? Implement the edge detector of your choice to get a set of $k$ feature points. 
+  Import diamond.png to your program of choice (MATLAB or Python). Implement the edge detector of your choice to get a set of $k$ feature points that represent the shape. 
   \item 
-  $k$ is clearly too many feature points, how can you narrow it down to $n$ points that accurately represent the original image? Implement a method of your choosing. 
+  Implement a methodology to reduce this set of $k$ feature points to $n << k$  points. 
   \item
   If the shape's four sides had small amplitude sinusoids along the flat parts, how would this affect your choice of feature points? Large amplitude sinusoids?
   \item
