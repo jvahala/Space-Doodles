@@ -28,7 +28,7 @@ def get_features():
     
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-    raw_img, image, contours, hierarchy = f_e.importImage('shape1.png')
+    raw_img, image, contours, hierarchy = f_e.importImage('diamond.png')
     cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 
 
