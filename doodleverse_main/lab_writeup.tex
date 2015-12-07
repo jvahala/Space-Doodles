@@ -102,6 +102,7 @@ showstringspaces=false
 \huge The Doodle Verse \\ % The assignment title
 }
 \date{}
+
 \begin{document}
 \maketitle
 
@@ -132,7 +133,7 @@ In order to find a set of $n$ feature points of a drawing, we first need to turn
 Algorithm used for finding contours involves a border following technique defined in this paper. 
 Satoshi Suzuki and others. Topological structural analysis of digitized binary images by border following. Computer Vision, Graphics, and Image Processing, 30(1):32–46, 1985. DEFINE ALGORITHM AND ADD TO BIBLIOGRAPHY. 
 
-Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector. EXPLAIN FROM THE FOLLOWING: http://docs.opencv.org/2.4/doc/tutorials/features2d/trackingmotion/harris_detector/harris_detector.html The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set to fine tune by other methods, which is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include the top-most, right-most, bottom-most, and left-most features of the contour so that we are assured that at least four of the features will likely be useful. In adding these features, we now have a set of $m+4$ features to narrow down. 
+Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector. EXPLAIN FROM THE FOLLOWING: $http://docs.opencv.org/2.4/doc/tutorials/features2d/trackingmotion/harris_detector/harris_detector.html$ The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set to fine tune by other methods, which is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include the top-most, right-most, bottom-most, and left-most features of the contour so that we are assured that at least four of the features will likely be useful. In adding these features, we now have a set of $m+4$ features to narrow down. 
 
 Finally, in order to turn our $m+4$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. The algorithm is defined below. Note that the order does not greatly affect the final result of the feature set and that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
 
@@ -147,7 +148,7 @@ N-feature selection algorithm:
 Finally, because our approach for matching feature points to stars is based upon a version of triangular mapping, we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. 
 
 
-\subsection{Mollweide Projection}
+\subsection{Cartesian and Spherical Coordinates: The Mollweide Projection}
 Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first few stars of our raw data set:
 \begin{python}
 	   RA         Dec        Mag  
@@ -169,7 +170,7 @@ The "Dec" or "declination" measures the distances above or below the equator and
 
 To convert from spherical coordinates to Cartesian coordinates, we need to pick a center point and project the stars in the neighborhood of this point onto a plane.  If we attempt to project all or most of the stars, this will distort the stars far from our center point, which would be undesirable considering we are trying to match shapes.  This restricts our search to small neighborhoods at a time.
 
-The Mollweide projection of a star with spherical coordinates $(\lambda,\phi)$ centered around ($\lambda_c,\phi_c$) can be obtained as follows:
+The Mollweide projection of a star with spherical coordinates $(\lambda,\phi)$ centered around ($\lambda_c,\phi_c$) can be obtained as follows \cite{Snyder1987}:
 $$
 x = R\frac{2\sqrt{2}}{\pi}(\lambda-\lambda_c)cos(\theta)$$$$
 y = R\sqrt{2}sin(\theta)
@@ -223,7 +224,7 @@ So if we are looking for $m$ possible matches in our subset, we can start with a
 
 Unfortunately, this approach doesn't scale well when our feature set is more than 3 points (most notably, the search space becomes way too large). However, matching 3 feature points to 3 stars does uniquely determine a transformation from the $(x,y)-$plane that the features lie in to the $(x,y)-$plane that the stars lie in. So rather than finding a match for the remaining points using this clustering approach, we can simply check to see if there are stars in the appropriate places to form the rest of our shape. To do this, we need to find the transformation from the $(x,y)-$coordinates of our features to the $(x,y)-$coordinates of our stars. To find this transformation, we must solve what is called the Procrustes problem.
 
-\subsection{The Orthogonal Procrustes Problem}
+\subsection{The Orthogonal Procrustes Problem\cite{Everson1997}}
 Here we address the problem of finding the ideal transformation $T$ between our set of feature points $F$ and a predetermined subset of stars $S\subset \mathbb{S}$. Here we are assuming $F$ and $S$ are the same size $(2\times k)$ and represent their respective collections of points in Cartesian coordinates (each column is a point).  Finding this transformation will be necessary to evaluate the fitness of a possible match.
 
 Other than minimizing the distance between points, the primary goal is preserving the shape of $F$. For now, let's also constrain the problem to where $S$ and $F$ are normalized, so we don't need to change the scale of $F$: our transformation will preserve distances and angles between points (and thus the shape). This simplifies the problem because it constrains $T$ to be orthogonal. Also, let's assume that both sets of points are centered around the origin (i.e. their mean is $\begin{bmatrix}
@@ -256,7 +257,7 @@ def Procrustes(F, S):
 
 \subsection{Evaluating the Match}
 
-Now we have sufficient machinery to evaluate our possible match.  We know we have a decent match for three of our feature points, and we know how to transform these feature points so they best align with the match. We just have to determine if there is decent match for the remaining feature points. To do this, we apply the same transformation to these feature points, and search for bright stars nearby the transformed points. In the simplest case, we could just pick the closest star to each transformed point.
+Now we have sufficient machinery to evaluate our possible match.  We know we have a decent match for three of our feature points, and we know how to transform these feature points so they best align with the match. We just have to determine if there is decent match for the remaining feature points. To do this, we apply the same transformation to these feature points, and search for bright stars nearby the transformed points. In the simplest case, we could just pick the closest star to each transformed point and implement some cost function that penalizes dim stars.
 
 Now we have our set of transformed feature points $[f_1,\ldots,f_n]=\bar{F}$, our set of stars $[s_1,\ldots,s_n] = \bar{S}$, with $[m_1,\ldots,m_n] = \bar{M}$ being the set of magnitudes for the stars in $\bar{S}$.
 
@@ -283,6 +284,8 @@ You have been supplied: labshape.png and a star dataset. Perform the following:
   \item Question 3....
 \end{enumerate}
 
+\bibliography{cited_papers}
+\bibliographystyle{ieeetr}
 
 
 \end{document}
