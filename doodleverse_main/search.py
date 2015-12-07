@@ -365,7 +365,7 @@ def Search(star_tab, featset):
     # Convert from spherical to cartesian using mollweide projection
     star_subset = star_tab.MollProject(closest_subtable)
     
-    '''
+    
     cs = closest_subtable    
     
     csa[:,0] = np.array(cs['RA'])
@@ -373,7 +373,7 @@ def Search(star_tab, featset):
     csa[:,2] = np.array(cs['Mag'])
     
     sio.savemat('sub-table.mat',{'RA':cs['RA'], 'Dec':cs['Dec'], 'Mag':cs['Mag']})
-    '''
+    
     
     # Pick 3 random feature points of feature set, get angles
     subindices = np.random.choice(featset.GetLength(),3,replace=False)
