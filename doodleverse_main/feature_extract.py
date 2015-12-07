@@ -1,13 +1,15 @@
 import numpy as np 
 import cv2 #openCV library
 from matplotlib import pyplot as plt
+from matplotlib import image as mpimg
 np.set_printoptions(threshold=np.nan)
 
 def main():
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
 	raw_img, image, contours, hierarchy = importImage('shape1.png')
-	cnt = contours[2] #contour zero is border, contour 1 is outermost contour, ...etc
+	img_main=mpimg.imread('shape1.png')
+	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 	cnt2 = cleanContour(cnt) #makes distances between contour points more even
 
 	#create grayscale (uint8) all white image to draw features onto
@@ -22,15 +24,9 @@ def main():
 
 	#consolidate features
 	add_threshold = 0.5 #smaller values add more points (0.5 default)
-	remove_threshold = 0.5 #larger values mean less points (0.5 default)
+	remove_threshold = 0.65 #larger values mean less points (0.5 default)
 	n = 8#number of divisions for determining normalized error (8 default)
 	index = 0 #default starting index (0 default)
-
-	add_threshold = 0.3 #any normalized Error between features must be greater than this value for a new point to be added
-	remove_threshold = 0.2 #larger values mean less features will make it through
-	n = 5#number of divisions for determining normalized error
-	index = 0 #default starting index 
-	#num_features = 7
 
 	count = 0
 	new_features = addFeatures(index,features,cnt2,n,add_threshold)
@@ -42,11 +38,41 @@ def main():
 
 	#plot feature points
 	fig1 = plt.figure(1)
+	plt.subplot(221)
+	plt.imshow(img_main)
+	plt.title('(a) Original Image', fontsize=10)
+	frame = plt.gca()
+	frame.axes.get_xaxis().set_ticks([])
+	frame.axes.get_yaxis().set_ticks([])
+	plt.subplot(222)
 	plt.imshow(draw_img.squeeze(),cmap='Greys')
-	plt.scatter(corners[:,0],corners[:,1],s=20,c='b',marker='x')
+	plt.title('(b) Contour', fontsize=10)
+	frame = plt.gca()
+	frame.axes.get_xaxis().set_ticks([])
+	frame.axes.get_yaxis().set_ticks([])
+	plt.subplot(223)
+	plt.imshow(draw_img.squeeze(),cmap='Greys')
+	plt.hold(True)
+	plt.scatter(features[:,0],features[:,1],s=20,c='b',marker='x')
 	plt.plot(features[:,0],features[:,1])
+	plt.title('(c) Harris Corner Detector Features', fontsize=10)
+	plt.axis('image')
+	frame = plt.gca()
+	frame.axes.get_xaxis().set_ticks([])
+	frame.axes.get_yaxis().set_ticks([])
+	plt.subplot(224)
+	plt.imshow(draw_img.squeeze(),cmap='Greys')
+	plt.hold(True)
+	plt.scatter(new_features[:,0],new_features[:,1],s=20,c='r',marker='x')
 	plt.plot(new_features[:,0],new_features[:,1],'r-')
-	plt.title('Feature Map')
+	best_index = best_features_sorted[0,1]
+	best_triangle = new_features[2:5,:]
+	plt.scatter(best_triangle[:,0],best_triangle[:,1],s=30,facecolors='none',edgecolors='g',marker='o')
+	plt.title('(d) Optimized Features', fontsize=10)
+	plt.axis('image')
+	frame = plt.gca()
+	frame.axes.get_xaxis().set_ticks([])
+	frame.axes.get_yaxis().set_ticks([])
 	plt.show()
 
 """
