@@ -118,6 +118,8 @@ design. Welcome to the Doodle Verse!
 
 The problem can be broken up into two main tasks: (1) taking the input image and extracting the ideal feature points, and (2) finding the ideal set of stars whose formation matches this set of feature points.
 
+For the first task, we must perform a series of image processing steps to separate an image into a set of feature points. We must (a) define the image contours as sets of $k$ (x,y) coordinates that accurately depict the original image, and (b) reduce each contour into sets of $n<k$ (x,y) cooridinates that does not substantially degrade the original image representation. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$ where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. 
+
 For the second task, we start by framing it as an optimization problem. If $\mathbb{S}$ is our set of stars and $F$ is the matrix defined by our feature points, then we are looking for the subset $S\subset\mathbb{S}$ that minimizes the following: $||TF - S||_F$.  Here $T$ is a map from the Cartesian "feature space" to the space that our stars lie in that preserves the shape of our feature points (i.e. doesn't distort angles and relative distances).
 
 The number of stars in our $\mathbb{S}$ set (which has been restricted to stars visible with the naked eye) is around 3000, so for $n$ feature points, there are around 3000 choose $n$ possibilities for $S$. The search space is too large for a brute force method.  We will proceed by breaking this problem into smaller problems to the point where a random search will yield sufficiently quick and accurate results.
@@ -125,7 +127,25 @@ The number of stars in our $\mathbb{S}$ set (which has been restricted to stars 
 
 \subsection{Getting Feature Points}
 
-Section about getting feature points.
+In order to find a set of $n$ feature points of a drawing, we first need to turn the drawing into a set of contours from which we will get our feature points. In order to accomplish this, we need some form of edge detector. 
+
+Algorithm used for finding contours involves a border following technique defined in this paper. 
+Satoshi Suzuki and others. Topological structural analysis of digitized binary images by border following. Computer Vision, Graphics, and Image Processing, 30(1):32–46, 1985. DEFINE ALGORITHM AND ADD TO BIBLIOGRAPHY. 
+
+Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector. EXPLAIN FROM THE FOLLOWING: http://docs.opencv.org/2.4/doc/tutorials/features2d/trackingmotion/harris_detector/harris_detector.html The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set to fine tune by other methods, which is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include the top-most, right-most, bottom-most, and left-most features of the contour so that we are assured that at least four of the features will likely be useful. In adding these features, we now have a set of $m+4$ features to narrow down. 
+
+Finally, in order to turn our $m+4$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. The algorithm is defined below. Note that the order does not greatly affect the final result of the feature set and that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
+
+N-feature selection algorithm: 
+\begin{enumerate}
+	\item 
+	For all points $p_i$ in the set of $m+4$ features, find normalized error $E_i$ between $p_{i-1}$ and $p_{i+1}$. If $E_i < t_{delete}$, remove $E_i$ from the set of feature points. Else, move on to the next point. until all redundant points $j$ have been removed and your new set is composed of $y = m - j$ points.  
+	\item
+	For all points $p_i$ in the set of $y$ features, find normalized error $E_i$ between $p_{i}$ and $p_{i+1}$. If $E_i > t_{add}$, then add a new feature point along the contour at the bisecting point and test this new point to check if it meets the $t_{add}$ criterion. Else, move on to the next point. When finished, the new set of feature points is composed of $n = y + r$ points, where $r$ is the number of points added by this step. 
+\end{enumerate}
+
+Finally, because our approach for matching feature points to stars is based upon a version of triangular mapping, we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. 
+
 
 \subsection{Mollweide Projection}
 Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first few stars of our raw data set:
@@ -244,9 +264,15 @@ Suppose we had $k$ possible matches $\{\bar{S}_i,\bar{M}_i\}$, and we want to de
 
 
 \section{Lab}
+You have been supplied: labshape.png and a star dataset. Perform the following: 
 
 \begin{enumerate}
-  \item Feature detection part
+  \item
+  Import labshape.png to your program of choice (MATLAB or Python). What is a good way to get a set of $k$ feature points from this image? How important is the edge detector your choose for this circumstance? Implement the edge detector of your choice to get a set of $k$ feature points. 
+  \item 
+  $k$ is clearly too many feature points, how can you narrow it down to $n$ points that accurately represent the original image? Implement a method of your choosing. 
+  \item
+  If the shape's four sides had small amplitude sinusoids along the flat parts, how would this affect your choice of feature points? Large amplitude sinusoids? 
   \item
   Generalize the orthogonal procrustes problem so that it will be useful for our case. That is, given the $(2\times k)$ matrix of feature points $F$ and a  $(2\times k)$ matrix of star points $S$ (not necessarily unit norm or centered around the origin), find ideal transformation $T$ such that $||T(F)-S||_F$ is minimized.  Note that it is easy to reduce to the previous case by computing the following:
   $$
