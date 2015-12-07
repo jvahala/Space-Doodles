@@ -138,7 +138,36 @@ In order to find a set of $n$ feature points of a drawing, we first need to turn
 
 Algorithm used for finding contours involves a border following technique defined in this paper \cite{Suzuki1985}
 
-Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector. EXPLAIN FROM THE FOLLOWING: $http://docs.opencv.org/2.4/doc/tutorials/features2d/trackingmotion/harris_detector/harris_detector.html$ The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set to fine tune by other methods, which is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include the top-most, right-most, bottom-most, and left-most features of the contour so that we are assured that at least four of the features will likely be useful. In adding these features, we now have a set of $m+4$ features to narrow down. 
+Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector.
+
+Harris Corner Detection
+
+When we’re designing computer programs to work with images, it is necessary to be able to map between two images of the same (or very similar) objects. In order to do this, we need to be able to reliably extract uniquely recognizable points in each image---we call these features. In particular, we’ll talk about corners here. Corners can be thought of as the intersection of two edges, so the gradient of the image will be large in both directions. In particular, if the function $I(x, y)$ represents the intensity of an image at position $(x, y)$, then we want to maximize $E(u, v) = \sum_{x,y} w(x, y) [I(x+u, y+v) - I(x, y)]^2$, where $w(x, y)$ is the window over which we’re looking at position $(x, y)$ and $(u, v)$ are the half-widths of the window in the $x$ and $y$ directions. After a Taylor expansion and some algebra, we can express $E$ as 
+
+$$
+E(u, v) \approx \begin{bmatrix}
+u & v
+\end{bmatrix} M \begin{bmatrix}
+u\\
+v
+\end{bmatrix}
+$$
+
+where 
+
+$$
+M = \sum_{x,y} w(x, y) \begin{bmatrix}
+I_x^2 & I_x~I_y \\ I_x~I_y & I_y^2
+\end{bmatrix}
+$$
+
+Now, for each window, a score $R$ is calculated and compared to a threshold value, to determine if a corner is present:
+$$
+R = [det(M) - k(Tr(M)]^2
+$$
+Furthermore, $det(M)$ and $Tr(M)$ can be expressed in terms of the eigenvalues $\lambda_1$ and $\lambda_2$: $det(M) = \lambda_1 \times \lambda_2$ and $Tr(M) = \lambda_1 + \lambda_2$. In summary, your results for Harris corner detection may still vary, depending on your choice of $u$, $v$, and $R$.
+
+The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set to fine tune by other methods, which is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include the top-most, right-most, bottom-most, and left-most features of the contour so that we are assured that at least four of the features will likely be useful. In adding these features, we now have a set of $m+4$ features to narrow down. 
 
 Finally, in order to turn our $m+4$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. The algorithm is defined below. Note that the order does not greatly affect the final result of the feature set and that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
 
