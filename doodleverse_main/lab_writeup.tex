@@ -215,7 +215,7 @@ def project(ra, dec, c_ra, c_dec):
 \end{python}
 
 \fbox{\begin{minipage}{40em}
-\textbf{Use this script to convert the points found in (something) to (x,y) coordinates centered at the point (???).}
+\textbf{Use this script to convert the 79 stars found in $stars.mat$ to (x,y) coordinates centered at the ($\lambda_c,\phi_c)=(293, -2.8)$.}
 \end{minipage}}
 
 \subsection{Preliminary Search: A Clustering Approach}
@@ -297,6 +297,11 @@ def Procrustes(F, S):
 	
 	return T
 \end{python}
+
+\fbox{\begin{minipage}{40em}
+\textbf{Use the Procrustes algorithm to find the transformation that best maps the $A$ to $B$ matrix found in the $procrustes.mat$ file.}
+\end{minipage}
+}
 
 \subsection{Evaluating the Match}
 
