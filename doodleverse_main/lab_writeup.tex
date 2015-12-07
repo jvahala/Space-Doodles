@@ -181,6 +181,13 @@ N-feature selection algorithm:
 
 Finally, because our approach for matching feature points to stars is based upon a version of triangular mapping, we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. 
 
+\pagebreak
+
+\begin{figure}
+\center{\includegraphics[scale=0.8]{feature_detection.png}}
+\caption{}
+\end{figure}
+
 
 \subsection{Cartesian and Spherical Coordinates: The Mollweide Projection}
 Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first few stars of our raw data set:
