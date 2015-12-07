@@ -136,8 +136,7 @@ The number of stars in our $\mathbb{S}$ set (which has been restricted to stars 
 
 In order to find a set of $n$ feature points of a drawing, we first need to turn the drawing into a set of contours from which we will get our feature points. In order to accomplish this, we need some form of edge detector. 
 
-Algorithm used for finding contours involves a border following technique defined in this paper. 
-Satoshi Suzuki and others. Topological structural analysis of digitized binary images by border following. Computer Vision, Graphics, and Image Processing, 30(1):32–46, 1985. DEFINE ALGORITHM AND ADD TO BIBLIOGRAPHY. 
+Algorithm used for finding contours involves a border following technique defined in this paper \cite{Suzuki1985}
 
 Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector. EXPLAIN FROM THE FOLLOWING: $http://docs.opencv.org/2.4/doc/tutorials/features2d/trackingmotion/harris_detector/harris_detector.html$ The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set to fine tune by other methods, which is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include the top-most, right-most, bottom-most, and left-most features of the contour so that we are assured that at least four of the features will likely be useful. In adding these features, we now have a set of $m+4$ features to narrow down. 
 
@@ -311,11 +310,16 @@ Now we have our set of feature points $[f_1,\ldots,f_n]=F$, our possible match s
 
 
 \section{Lab}
-You have been supplied: labshape.png and a star dataset. Perform the following: 
+You have been supplied: diamond.png and a star dataset. Perform the following: 
+
+\begin{figure}
+\center{\includegraphics[scale=0.5]{diamond.png}}
+\caption{diamond.png}
+\end{figure}
 
 \begin{enumerate}
   \item
-  Import labshape.png to your program of choice (MATLAB or Python). What is a good way to get a set of $k$ feature points from this image? How important is the edge detector your choose for this circumstance? Implement the edge detector of your choice to get a set of $k$ feature points. 
+  Import diamond.png to your program of choice (MATLAB or Python). What is a good way to get a set of $k$ feature points from this image? How important is the edge detector your choose for this circumstance? Implement the edge detector of your choice to get a set of $k$ feature points. 
   \item 
   $k$ is clearly too many feature points, how can you narrow it down to $n$ points that accurately represent the original image? Implement a method of your choosing. 
   \item
