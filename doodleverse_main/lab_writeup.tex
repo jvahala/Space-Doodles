@@ -107,7 +107,12 @@ showstringspaces=false
 
 \section{Introduction}
 
-The DoodleVerse will make your dreams come true.
+Each civilization has their own set of constellations, groups of stars ascribed to a particular piece of cultural
+memory. The ancient Greeks gave us most of our modern constellations: for example, Orion is a mythical
+hunter, but the Lakota constellation of the Hand is roughly coincident (and consists of many of the same
+stars). Could we take an arbitrary constellation, and then find a set of stars that fit it? In this lab, we’ll
+explore how to take a set of about 1000 bright stars, and construct spectacular celestial displays of your own
+design. Welcome to the Doodle Verse!
 
 \section{Overview}
 
@@ -185,22 +190,18 @@ def project(ra, dec, c_ra, c_dec):
 
 Use this script to convert the points found in (something) to (x,y) coordinates centered at the point (???).
 
-\subsection{Preliminary Search}
+\subsection{Preliminary Search: A Clustering Approach}
 We wish to determine if there is possible good match for our feature points in the set obtained from the previous section.  Since we are only trying to match the shape and not the scale of our feature points, one approach is to find a set of stars that forms the same set of interior angles.
 
-Even with our substantially restricted search space ($30-50$ stars), the possibilities are still too large for a brute force approach.  For example, if our feature set had 7 feature points, we would have on the order of $10^7$ combinations of stars to try.
+In essence, this is a clustering problem. First, let's simplify the problem by considering the case where our feature points consist of just 3 points: $(p_1,p_2,p_3)$. The shape of these 3 points is uniquely determined by their interior angles (i.e. the angles of the triangle they form), call them $(a_1,a_2,a_3)$. If we think of every set of 3 points in our search space as a specified by their interior angles (we can always order the angles in ascending order to uniquely determine the set's "angle representation"), we are basically looking for the 3-point sets that lie in the same cluster as our feature points. This cluster would be our "possible match" cluster.
 
-As is common when approaching non-convex problems like this, we decided to try a random search approach. Unfortunately, the probability of picking a set of stars whose interior angles match all $k$ feature points is very low for $k>3$. However, finding a match for just $3$ of the feature points can be found rather quickly. This effectively matches a triangle in our feature set to a triangle of stars.
+Question: Form this as a clustering problem $X = DW$. What do $X,D,W$ look like? Say our search set contains $50$ stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?
 
+Unfortunately, even with our substantially restricted search space ($30-50$ stars), the number of possible size 3 subsets is still quite large (on the order of $10^4$), and the clustering algorithms we know require you to iterate through every point. Fortunately, it turns out that solving this cluster problem in its entirety is not necessary. We are not only looking for the \textit{best fit} sets of stars, we are looking for the best fit \textit{and brightest} sets of stars. By sorting the stars by magnitude, we can prioritize clustering the brightest stars so we find the brightest, best fits.
 
+So if we are looking for $m$ possible matches in our subset, we can start with a much smaller subset of brightest stars and keep adding the next-brightest star until the cluster that contains our feature points has $m$ members.
 
-The following script finds interior angles formed by $3$ points:
-
-\begin{python}
-Angle script?
-\end{python}
-
-Now we have a possible match for a subset of our points. We need to check to see if there are stars in the appropriate places to form the rest of our shape. To do this, we need to find a transformation from the $(x,y)-$coordinates of our features to the $(x,y)-$coordinates of our stars. To find this transformation, we must solve what is called the Procrustes problem.
+Unfortunately, this approach doesn't scale well when our feature set is more than 3 points (most notably, the search space becomes way too large). However, matching 3 feature points to 3 stars does uniquely determine a transformation from the $(x,y)-$plane that the features lie in to the $(x,y)-$plane that the stars lie in. So rather than finding a match for the remaining points using this clustering approach, we can simply check to see if there are stars in the appropriate places to form the rest of our shape. To do this, we need to find the transformation from the $(x,y)-$coordinates of our features to the $(x,y)-$coordinates of our stars. To find this transformation, we must solve what is called the Procrustes problem.
 
 \subsection{The Orthogonal Procrustes Problem}
 Here we address the problem of finding the ideal transformation $T$ between our set of feature points $F$ and a predetermined subset of stars $S\subset \mathbb{S}$. Here we are assuming $F$ and $S$ are the same size $(2\times k)$ and represent their respective collections of points in Cartesian coordinates (each column is a point).  Finding this transformation will be necessary to evaluate the fitness of a possible match.
@@ -227,16 +228,20 @@ def Procrustes(F, S):
 	'''
 	
 	[U,s,VT] = np.linalg.svd(np.dot(S,F.T))
-	V = VT.T
 	
-	T = np.dot(U,V.T)
+	T = np.dot(U,VT)
 	
 	return T
 \end{python}
 
 \subsection{Evaluating the Match}
 
-Brightness stuff
+Now we have sufficient machinery to evaluate our possible match.  We know we have a decent match for three of our feature points, and we know how to transform these feature points so they best align with the match. We just have to determine if there is decent match for the remaining feature points. To do this, we apply the same transformation to these feature points, and search for bright stars nearby the transformed points. In the simplest case, we could just pick the closest star to each transformed point.
+
+Now we have our set of transformed feature points $[f_1,\ldots,f_n]=\bar{F}$, our set of stars $[s_1,\ldots,s_n] = \bar{S}$, with $[m_1,\ldots,m_n] = \bar{M}$ being the set of magnitudes for the stars in $\bar{S}$.
+
+Suppose we had $k$ possible matches $\{\bar{S}_i,\bar{M}_i\}$, and we want to determine the \textit{best} one. Set up a cost function that we are trying to minimize.
+
 
 \section{Lab}
 

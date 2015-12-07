@@ -138,6 +138,68 @@ class SetOfPoints:
         else:
             return subset
             
+    def ClusterSearch(self, starset):
+        """
+        Does a smarter search than RandomSearch? Finds a good BRIGHT match
+        """
+        
+        # Get angles formed by first 3 points in self
+        feat_angles = np.sort(self.GetAngles())
+        print('feature:',feat_angles)
+        
+        # Sort starset by its brightness (add first column to remember index)
+        mat = starset.GetMatrix()
+        n = starset.GetLength()
+        stars = np.hstack((np.arange(n).reshape(n,1),mat))
+        s_sorted = stars[stars[:,3].argsort()]
+        
+        print(s_sorted)
+
+        # Set error tolerance, initialize counter
+        epsilon = .01
+        num_tries = 0
+        brk = False
+        best_diff_so_far = epsilon+1
+        
+        # iterate through all sets of 3 stars in order of brightness
+        # until a match is found
+        for i in range(2,n):
+            for j in range(1,i):
+                for k in range(j):
+                    v = [int(s_sorted[i,0]),int(s_sorted[j,0]),int(s_sorted[k,0])]
+                    a = np.sort(starset.GetAngles(verts = v))
+                    num_tries += 1
+                    #print(num_tries)
+                    if num_tries%500 == 0:
+                        epsilon *= 1.1
+                        if best_diff_so_far < epsilon:
+                            a = best_so_far
+                            v = best_v_so_far
+                            brk = True
+                            break
+                    diff = np.linalg.norm(a - feat_angles)
+                    if diff < epsilon:
+                        brk = True
+                        break
+                    if diff < best_diff_so_far:
+                        best_so_far = a
+                        best_diff_so_far = diff
+                        best_v_so_far = v
+                if brk is True:
+                    break
+            if brk is True:
+                break
+                
+        print('feat', feat_angles)
+        print('match',a)
+        print('verts',np.sort(starset.GetAngles(verts = v)))
+        print('mags',mat[v,2])
+
+        print('done')
+                
+        # Return starset object of matching points.
+        return starset.GetSubset(indices = v)
+            
     def RandomSearch(self, starset):
         '''
         Randomly searches starset for a subset that matches the self's shape
@@ -304,7 +366,9 @@ def Search(star_tab, featset):
     subindices = np.random.choice(featset.GetLength(),3,replace=False)
     featsub = featset.GetSubset(subsize = 3, indices = subindices)
     
-    match = featsub.RandomSearch(star_subset)
+    #match = featsub.RandomSearch(star_subset)
+    
+    match = featsub.ClusterSearch(star_subset)    
         
     # Get procrustes transformation, apply to all feature points
     [R,T,scale] = featset.Procrustes(match, selfindices = subindices)
@@ -360,6 +424,7 @@ def Search(star_tab, featset):
 
     matchM[:,2] = (matchM[:,2]-min(starM[:,2]))/(max(starM[:,2]+1))
     starM[:,2] = (starM[:,2]-min(starM[:,2]))/(max(starM[:,2]+1))
+    searchM[:,2] = (searchM[:,2]-min(searchM[:,2]))/(max(searchM[:,2]+1))
     
     plt.figure()
     for i in range(starM.shape[0]):
@@ -374,7 +439,7 @@ def Search(star_tab, featset):
     
     plt.figure()
     for i in range(searchM.shape[0]):
-        plt.scatter(searchM[i,0],searchM[i,1],c=[0,0,0],alpha=.1)
+        plt.scatter(searchM[i,0],searchM[i,1],s=70,c=[0,0,0],alpha=abs(1-searchM[i,2]))
     for i in range(matchM.shape[0]):
         plt.scatter(matchM[i,0],matchM[i,1],s=50,c='r') #alpha=matchM[i,2]
     for i in range(featMprime.shape[0]):
