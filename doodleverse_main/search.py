@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import astropy.table as table
 import pydl.pydlutils.spheregroup.spherematch as spherematch
 from scipy import spatial
+from astropy.io import ascii
+from astropy.io import fits
+import scipy.io as sio
 
 class StarTable:
     def __init__(self, file = 'hyg_catalog.fits'):
@@ -361,7 +364,17 @@ def Search(star_tab, featset):
 
     # Convert from spherical to cartesian using mollweide projection
     star_subset = star_tab.MollProject(closest_subtable)
-
+    
+    '''
+    cs = closest_subtable    
+    
+    csa[:,0] = np.array(cs['RA'])
+    csa[:,1] = np.array(cs['Dec'])
+    csa[:,2] = np.array(cs['Mag'])
+    
+    sio.savemat('sub-table.mat',{'RA':cs['RA'], 'Dec':cs['Dec'], 'Mag':cs['Mag']})
+    '''
+    
     # Pick 3 random feature points of feature set, get angles
     subindices = np.random.choice(featset.GetLength(),3,replace=False)
     featsub = featset.GetSubset(subsize = 3, indices = subindices)

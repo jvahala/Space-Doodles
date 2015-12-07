@@ -106,6 +106,12 @@ showstringspaces=false
 \begin{document}
 \maketitle
 
+\begin{figure*}[!h]
+\center{\includegraphics[scale=1]{space.eps}}
+\captionsetup{labelformat=empty}
+\caption{}
+\end{figure*}
+
 \section{Introduction}
 
 Each civilization has their own set of constellations, groups of stars ascribed to a particular piece of cultural
@@ -166,7 +172,7 @@ Next we want to begin our search to see if we can find a set of stars that fits 
 	0.15583908  -27.9879039    5.42
 \end{python}
 The "RA" or "right ascension" measures the distance from a central meridian and ranges from $0$ hours to $24$ hours (which corresponds to $0\si{\degree}-360\si{\degree}$). To convert to degrees we need to multiply this column by $15$.
-The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$.
+The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$. The "Mag" or "magnitude" corresponds to the stars brightness. The scale is reversed: \textit{lower numbers correspond to brighter stars}.
 
 To convert from spherical coordinates to Cartesian coordinates, we need to pick a center point and project the stars in the neighborhood of this point onto a plane.  If we attempt to project all or most of the stars, this will distort the stars far from our center point, which would be undesirable considering we are trying to match shapes.  This restricts our search to small neighborhoods at a time.
 
@@ -209,14 +215,51 @@ def project(ra, dec, c_ra, c_dec):
 	return [x,y]
 \end{python}
 
-Use this script to convert the points found in (something) to (x,y) coordinates centered at the point (???).
+\fbox{\begin{minipage}{40em}
+\textbf{Use this script to convert the points found in (something) to (x,y) coordinates centered at the point (???).}
+\end{minipage}}
 
 \subsection{Preliminary Search: A Clustering Approach}
 We wish to determine if there is possible good match for our feature points in the set obtained from the previous section.  Since we are only trying to match the shape and not the scale of our feature points, one approach is to find a set of stars that forms the same set of interior angles.
 
-In essence, this is a clustering problem. First, let's simplify the problem by considering the case where our feature points consist of just 3 points: $(p_1,p_2,p_3)$. The shape of these 3 points is uniquely determined by their interior angles (i.e. the angles of the triangle they form), call them $(a_1,a_2,a_3)$. If we think of every set of 3 points in our search space as a specified by their interior angles (we can always order the angles in ascending order to uniquely determine the set's "angle representation"), we are basically looking for the 3-point sets that lie in the same cluster as our feature points. This cluster would be our "possible match" cluster.
+In essence, this is a clustering problem. First, let's simplify the problem by considering the case where our feature points consist of just 3 points: $(p_1,p_2,p_3)$. The shape of these 3 points is uniquely determined by their interior angles (i.e. the angles of the triangle they form), call them $(a_1,a_2,a_3)$. Finding these angles is a simple geometric formula:
 
-Question: Form this as a clustering problem $X = DW$. What do $X,D,W$ look like? Say our search set contains $50$ stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?
+The angle formed by $p_1, p_2, p_3$ with a vertex at $p_1$ is given by:
+
+$$\arccos\left(\frac{P_{12}^TP_{13}}{||P_{12}||||P_{13}||}\right)$$
+
+Where $P_{ij}$ is the vector formed by $(p_i - p_j)$.
+The following script computes and the angles as we need them:
+
+\begin{python}
+def GetAngles(verts):
+    '''
+    Gets angles specified by points in verts,
+    returns as a sorted array in radians.
+    '''
+    
+    d = np.zeros((3))
+    ab = verts[0]-verts[1]
+    ac = verts[0]-verts[2]
+    cb = verts[1]-verts[2]
+    d[0] = np.linalg.norm(ab)
+    d[1] = np.linalg.norm(ac)
+    d[2] = np.linalg.norm(cb)
+    
+    a = np.zeros((3))
+    a[0] = np.arccos(np.dot(ab,ac)/(d[0]*d[1]))
+    a[1] = np.arccos(np.dot(ab,cb)/(d[0]*d[2]))
+    a[2] = np.arccos(np.dot(ac,cb)/(d[1]*d[2]))
+    
+    return np.sort(a)
+\end{python}
+
+If we think of every set of 3 points in our search space as a specified by their interior angles (sorting the angles in ascending order uniquely determines the set's "angle representation"), we are basically looking for the 3-point sets that lie in the same cluster as our feature points. This cluster would be our "possible match" cluster.
+
+\fbox{\begin{minipage}{40em}
+\textbf{Form this as a clustering problem $X = DW$. What do $X,D,W$ look like? Say our search set contains $50$ stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
+\end{minipage}
+}
 
 Unfortunately, even with our substantially restricted search space ($30-50$ stars), the number of possible size 3 subsets is still quite large (on the order of $10^4$), and the clustering algorithms we know require you to iterate through every point. Fortunately, it turns out that solving this cluster problem in its entirety is not necessary. We are not only looking for the \textit{best fit} sets of stars, we are looking for the best fit \textit{and brightest} sets of stars. By sorting the stars by magnitude, we can prioritize clustering the brightest stars so we find the brightest, best fits.
 
@@ -234,9 +277,10 @@ Other than minimizing the distance between points, the primary goal is preservin
 $$||TF-S||^2_F = \langle TF-S, TF-S\rangle_F$$
 Where $tr(AB^T) = \langle A,B\rangle_F = \langle B,A\rangle_F = tr(BA^T)$.
 
-Let $U\Sigma V^T$ be the SVD of the matrix $SF^T$. Show that the orthogonal $T$ that minimizes\\ $||TF-S||^2_F$ is equal to $UV^T$.
-
+\fbox{\begin{minipage}{40em}\textbf{
+Let $U\Sigma V^T$ be the SVD of the matrix $SF^T$. Show that the orthogonal $T$ that minimizes $||TF-S||^2_F$ is equal to $UV^T$.}\\
 Hint: $T,U$, and $V$ are orthogonal, and multiplying a vector by an orthogonal matrix doesn't change its Frobenius norm.
+\end{minipage}}
 
 Here is the Python code that solves the orthogonal Procrustes problem:
 
@@ -259,9 +303,11 @@ def Procrustes(F, S):
 
 Now we have sufficient machinery to evaluate our possible match.  We know we have a decent match for three of our feature points, and we know how to transform these feature points so they best align with the match. We just have to determine if there is decent match for the remaining feature points. To do this, we apply the same transformation to these feature points, and search for bright stars nearby the transformed points. In the simplest case, we could just pick the closest star to each transformed point and implement some cost function that penalizes dim stars.
 
-Now we have our set of transformed feature points $[f_1,\ldots,f_n]=\bar{F}$, our set of stars $[s_1,\ldots,s_n] = \bar{S}$, with $[m_1,\ldots,m_n] = \bar{M}$ being the set of magnitudes for the stars in $\bar{S}$.
+Now we have our set of feature points $[f_1,\ldots,f_n]=F$, our possible match set of stars $[s_1,\ldots,s_n] = S$, with $[m_1,\ldots,m_n] = M$ being the set of magnitudes for the stars in $S$.
 
-Suppose we had $k$ possible matches $\{\bar{S}_i,\bar{M}_i\}$, and we want to determine the \textit{best} one. Set up a cost function that we are trying to minimize.
+\fbox{\begin{minipage}{40em}\textbf{Suppose we had $k$ such possible matches $\{S_i,M_i\}$, and we want to determine the \textit{best} one. Set up a cost/penalizer function that we are trying to minimize.}
+\end{minipage}}
+
 
 
 \section{Lab}
@@ -273,15 +319,17 @@ You have been supplied: labshape.png and a star dataset. Perform the following:
   \item 
   $k$ is clearly too many feature points, how can you narrow it down to $n$ points that accurately represent the original image? Implement a method of your choosing. 
   \item
-  If the shape's four sides had small amplitude sinusoids along the flat parts, how would this affect your choice of feature points? Large amplitude sinusoids? 
+  If the shape's four sides had small amplitude sinusoids along the flat parts, how would this affect your choice of feature points? Large amplitude sinusoids?
   \item
-  Generalize the orthogonal procrustes problem so that it will be useful for our case. That is, given the $(2\times k)$ matrix of feature points $F$ and a  $(2\times k)$ matrix of star points $S$ (not necessarily unit norm or centered around the origin), find ideal transformation $T$ such that $||T(F)-S||_F$ is minimized.  Note that it is easy to reduce to the previous case by computing the following:
+  Pick $3$ of your $n$ points and compute the angles between them. Now find a good potential match in (star-subset) for the triangle formed by these 3 points. Iterate through all possible combinations of stars in descending order of brightness until 3 "good" matches have been found.
+  \item
+  Generalize the orthogonal procrustes problem so that it will be useful for this case. That is, given the $(2\times k)$ matrix of feature points $F$ and a  $(2\times k)$ matrix of star points $S$ (which are not unit norm or centered around the origin), find ideal transformation $T$ such that $||T(F)-S||_F$ is minimized.  Note that it is easy to reduce to the previous case by computing the following:
   $$
   \hat{F} = \frac{F}{||F||_F} - mean(F)\quad\textrm{ and }\quad\hat{S} = \frac{S}{||S||_F} - mean(S)
   $$
-  and solving the problem for $\hat{F}$ and $\hat{S}$. Modify the previous Procrustes problem code to solve the general Procrustes problem.
-  \item Question 2...
-  \item Question 3....
+  and solving the problem for $\hat{F}$ and $\hat{S}$. Modify the previous Procrustes problem code to solve the general Procrustes problem, and use it to map all of your $n$ feature points to the subspace containing the star projections.
+  \item
+  For the feature points that weren't part of your triangle, find the closest stars to their transformed positions. Repeat this process for your other good matches and evaluate the overall fit of your matches using your cost function from the previous section. Which match is best? If your cost function had a weighted penalizer for the star magnitude, how does changing this weight affect your evaluation?
 \end{enumerate}
 
 \bibliography{cited_papers}
