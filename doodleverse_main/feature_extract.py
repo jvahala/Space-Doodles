@@ -7,8 +7,8 @@ np.set_printoptions(threshold=np.nan)
 def main():
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-	raw_img, image, contours, hierarchy = importImage('shape1.png')
-	img_main=mpimg.imread('shape1.png')
+	raw_img, image, contours, hierarchy = importImage('shape5.png')
+	img_main=mpimg.imread('shape5.png')
 	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 	cnt2 = cleanContour(cnt) #makes distances between contour points more even
 
@@ -23,14 +23,24 @@ def main():
 	features = orderFeatures(cnt2,extrema,corners)
 
 	#consolidate features
-	add_threshold = 0.5 #smaller values add more points (0.5 default)
-	remove_threshold = 0.65 #larger values mean less points (0.5 default)
-	n = 8#number of divisions for determining normalized error (8 default)
+	add_threshold = 0.01 #smaller values add more points (0.01 default)
+	remove_threshold = 0.01 #larger values mean less points (0.01 default)
+	n = 5#number of divisions for determining normalized error (5 default)
 	index = 0 #default starting index (0 default)
 
 	count = 0
-	new_features = addFeatures(index,features,cnt2,n,add_threshold)
+	new_features = features
+
+	#add a bunch of features 
+	new_features = addFeatures(index,new_features,cnt2,n,add_threshold)
+	new_features = addFeatures(index,new_features,cnt2,n,add_threshold*0.1)
+
+	#remove them slowly
 	new_features = removeMidpoints(index,new_features,cnt2,n,remove_threshold)
+	new_features = removeMidpoints(index,new_features,cnt2,n,remove_threshold*10)
+	new_features = removeMidpoints(index,new_features,cnt2,n,remove_threshold*30)
+	new_features = removeMidpoints(index,new_features,cnt2,n,remove_threshold*50)
+\
 	print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
 	best_features_sorted = findKeyFeatures(new_features)
 	print(best_features_sorted)
@@ -46,7 +56,7 @@ def main():
 	frame.axes.get_yaxis().set_ticks([])
 	plt.subplot(222)
 	plt.imshow(draw_img.squeeze(),cmap='Greys')
-	plt.title('(b) Contour', featureffontsize=10)
+	plt.title('(b) Contour', fontsize=10)
 	frame = plt.gca()
 	frame.axes.get_xaxis().set_ticks([])
 	frame.axes.get_yaxis().set_ticks([])
@@ -368,7 +378,10 @@ def getNormError(point_1,point_2,contour,n):
 	for i in range(n):
 		cnt_bisect, spline_bisect = findBisect(point_1,point_2,percent[i],contour)
 		absError = absError + distance(cnt_bisect,spline_bisect)
-	normError = absError / dist_p1p2
+	if dist_p1p2 > 5:
+		normError = absError / dist_p1p2
+	else:
+		normError = 0; 
 	#print('absError/dist_p1p2/normError: ', absError,' / ', dist_p1p2, ' / ', normError) 
 	return normError 
 
@@ -392,16 +405,30 @@ PROBLEMS:
 """
 def removeMidpoints(pt1_index, features, contour, n, threshold):
 	#will need to add in wrap around ability and other indexing stuff
-	pt2_index = pt1_index + 1
-	if pt2_index < features.shape[0] - 1:
-		normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
-		normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
-		if normErr_13-normErr_12 < threshold:
-			features  = np.delete(features,(pt2_index),(0))
-			features = removeMidpoints(pt1_index,features,contour,n,threshold)
-		else: 
-			pt1_index = pt1_index+1
-			features = removeMidpoints(pt1_index,features,contour,n,threshold)
+	if pt1_index < 0:
+		pt1_index = abs(pt1_index)
+		pt2_index = pt1_index - 1
+		if pt2_index > 0:
+			normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
+			normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
+			if normErr_13-normErr_12 < threshold:
+				features  = np.delete(features,(pt2_index),(0))
+				pt1_index = -1*(pt1_index - 1)
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
+			else: 
+				pt1_index = -1*(pt1_index-1)
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
+	elif pt1_index >= 0:
+		pt2_index = pt1_index + 1
+		if pt2_index < features.shape[0] - 1:
+			normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
+			normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
+			if normErr_13-normErr_12 < threshold:
+				features  = np.delete(features,(pt2_index),(0))
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
+			else: 
+				pt1_index = pt1_index+1
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
 	return features 
 
 """ 
@@ -471,7 +498,7 @@ def findKeyFeatures(features):
 		vec2_u = vec2/np.linalg.norm(vec2)
 		angle = np.arccos(np.dot(vec1_u,vec2_u))
 		if np.isnan(angle):
-			if vec1_u == vec2_u:
+			if vec1_u.all() == vec2_u.all():
 				angle = 0.0
 			else:
 				angle = np.pi
