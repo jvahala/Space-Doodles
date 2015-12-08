@@ -114,11 +114,10 @@ showstringspaces=false
 
 \section{Introduction}
 
-Each civilization has their own set of constellations, groups of stars ascribed to a particular piece of cultural
-memory. The ancient Greeks gave us most of our modern constellations: for example, Orion is a mythical
-hunter, but the Lakota constellation of the Hand is roughly coincident (and consists of many of the same
-stars). Could we take an arbitrary constellation, and then find a set of stars that fit it? In this lab, we’ll
-explore how to take a set of about 1000 bright stars, and construct spectacular celestial displays of your own
+Each civilization has their own set of constellations: groups of stars ascribed to a particular piece of cultural
+memory. The ancient Greeks gave us most of our modern constellations. For example: Orion is a mythical
+hunter. Could we take an arbitrary image and then find a set of stars that fit it? In this lab, we’ll
+explore how to take a set of stars and construct spectacular celestial displays of your own
 design. Welcome to the DoodleVerse!
 
 \section{Overview}
@@ -129,24 +128,32 @@ For the first task, we must perform a series of image processing steps to separa
 
 For the second task, we start by framing it as an optimization problem. If $\mathbb{S}$ is our set of stars and $F$ is the matrix defined by our feature points, then we are looking for the subset $S\subset\mathbb{S}$ that minimizes the following: $||TF - S||_F$.  Here $T$ is a map from the Cartesian "feature space" to the space that our stars lie in that preserves the shape of our feature points (i.e. doesn't distort angles and relative distances).
 
-The number of stars in our $\mathbb{S}$ set (which has been restricted to stars visible with the naked eye) is around 3000, so for $n$ feature points, there are around 3000 choose $n$ possibilities for $S$. The search space is too large for a brute force method.  We will proceed by breaking this problem into smaller problems to the point where a random search will yield sufficiently quick and accurate results.
+The number of stars in our $\mathbb{S}$ set (which has been restricted to stars visible with the naked eye) is around 3000, so for $n$ feature points, there are around 3000 choose $n$ possibilities for $S$. The search space is too large for a brute force method.  We will proceed by breaking this problem into smaller problems to the point where a random search will yield sufficiently quick and accurate results. For this lab, we have provided you with a subset of $79$ stars.
 \section{Warmup}
 
 \subsection{Getting Feature Points}
 
 In order to find a set of $n$ feature points of a drawing, we first need to turn the drawing into a set of contours from which we will get our feature points. In order to accomplish this, we need some form of edge detector. 
 
-Algorithm used for finding contours involves a border following technique defined in this paper \cite{Suzuki1985}. The use of this technique is shown in Figure \ref{feat_detect}(b). 
+To detect edges in an image, you can think of them as large-amplitude changes in either the x-direction, the y-direction, or both. A standard way to do this is with the Sobel operator, which convolves an image with two $n$ by $n$ kernels, each of which is designed to detect changes in either the x or y axis. The general form of the result of applying this method to some matrix $A$ is $G = \sqrt{G_x^2 + G_y^2}$, where $G_x = \begin{bmatrix}
+-1& 0 & 1\\
+-2 & 0& 2\\
+-1 & 0& 1
+\end{bmatrix}\star A$ and $G_x =\begin{bmatrix}
+-1 & -2 & -1\\
+0 & 0 & 0\\
+-2 & 0 & 2
+\end{bmatrix} \star A$. You can implement each of these axis-specific operators using \texttt{scipy.ndimage.filters.sobel(A, mode='constant', ...)}, summing the squares of the results for \texttt{axis=0} and \texttt{axis=1}.
+
+A more advanced border-following technique can be used for defining continuous contours\cite{Suzuki1985}. This technique is more useful than simple edge detection techniques because it determines an ordered contour instead of points of high "edge magnitude". The use of this technique is shown in Figure \ref{feat_detect}(b). 
 
 \fbox{\begin{minipage}{40em}
 \textbf{For a simple image, say a triangle with a black 1 pixel wide edge on a white background, suggest a reasonable edge detector to find the contour of the image. Why might a simple edge detector be "good enough" for this application?}
 \end{minipage}}
 
-Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. In particular, the Harris Corner Detector.
+Next, in order to narrow down our possible feature points, we can use a corner detector. Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. One particular tool is the Harris Corner Detector.
 
-Harris Corner Detection
-
-When we’re designing computer programs to work with images, it is necessary to be able to map between two images of the same (or very similar) objects. In order to do this, we need to be able to reliably extract uniquely recognizable points in each image---we call these features. In particular, we’ll talk about corners here. Corners can be thought of as the intersection of two edges, so the gradient of the image will be large in both directions. In particular, if the function $I(x, y)$ represents the intensity of an image at position $(x, y)$, then we want to maximize $J(u, v) = \sum_{x,y} w(x, y) [I(x+u, y+v) - I(x, y)]^2$, where $w(x, y)$ is the window over which we’re looking at position $(x, y)$ and $(u, v)$ are the half-widths of the window in the $x$ and $y$ directions. After a Taylor expansion and some algebra, we can express $J$ as 
+Corners can be thought of as the intersection of two edges, so the gradient of the image will be large in both directions. In particular, if the function $I(x, y)$ represents the intensity of an image at position $(x, y)$, then we want to maximize $J(u, v) = \sum_{x,y} w(x, y) [I(x+u, y+v) - I(x, y)]^2$, where $w(x, y)$ is the window over which we’re looking at position $(x, y)$ and $(u, v)$ are the half-widths of the window in the $x$ and $y$ directions. After a Taylor expansion and some algebra, we can express $J$ as 
 
 $$
 J(u, v) \approx \begin{bmatrix}
@@ -156,9 +163,7 @@ u\\
 v
 \end{bmatrix}
 $$
-
-where 
-
+where
 $$
 M = \sum_{x,y} w(x, y) \begin{bmatrix}
 I_x^2 & I_x~I_y \\ I_x~I_y & I_y^2
@@ -174,12 +179,14 @@ Furthermore, $det(M)$ and $Tr(M)$ can be expressed in terms of the eigenvalues $
 The local maxima from this approach yields the corners found in the image. By thresholding the $m > n$ largest-valued corners, the original set of $k >> n$ points can be largely reduced to a more manageable set of feature points as shown in Figure \ref{feat_detect}(c). This set can be fine tuned by additional methods to find better feature points. This is necessary because these $m$ feature points are not necessarily the most representative features of the contour. Many shapes may not give features that may seem obvious to us, so it is often useful to include a set of points that will exist for any contour so that the shape will at least have a minimal representation.  
 
 \fbox{\begin{minipage}{40em}
-\textbf{Determine a small set of features points that will exist for any two-dimensional shape.}
+\textbf{Given an arbitrary two-dimensional shape, determine some candidate feature points that will always exist.}
 \end{minipage}}
 
 Finally, in order to turn our $m$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$ where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. The algorithm is defined below. Note that the order does not greatly affect the final result of the feature set and that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
 
-N-feature selection algorithm (see Figure \ref{feat_detect}(d) for example of reducing an $m = 12$ point set to an $n = 8$ point set): 
+\textbf{N-feature selection algorithm}
+\\
+(see Figure \ref{feat_detect}(d) for example of reducing an $m = 12$ point set to an $n = 8$ point set)
 \begin{enumerate}
 	\item 
 	For all points $p_i$ in the set of $m$ features, find normalized error $E_i$ between $p_{i-1}$ and $p_{i+1}$. If $E_i < t_{delete}$, remove $p_i$ from the set of feature points. Else, move on to the next point. until all redundant points $j$ have been removed and your new set is composed of $y = m - j$ points.  
@@ -191,7 +198,7 @@ N-feature selection algorithm (see Figure \ref{feat_detect}(d) for example of re
 \textbf{With the star dataset being used in this application taken into consideration, why is it so important to represent the shape in as few feature points as possible?}
 \end{minipage}}
 
-Finally, because our approach for matching feature points to stars is based upon a version of triangular mapping, we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{p_i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. An example of the key feature points is identified in Figure \ref{feat_detect}(d). 
+Finally, our approach that will be discussed later depends on picking three important initial feature points, so we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{p_i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. An example of the key feature points is identified in Figure \ref{feat_detect}(d). 
 
 \pagebreak
 
@@ -203,7 +210,7 @@ Finally, because our approach for matching feature points to stars is based upon
 
 
 \subsection{Cartesian and Spherical Coordinates: The Mollweide Projection}
-Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first few stars of our raw data set:
+Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first three stars of our raw data set:
 \begin{python}
 	   RA         Dec        Mag  
 	float64     float64    float64
@@ -211,18 +218,20 @@ Next we want to begin our search to see if we can find a set of stars that fits 
 	0.02662528 -77.06529438    4.78
 	0.03039927  -3.02747891    5.13
 	0.03266433  -6.01397169    4.37
-	0.03886504 -29.72044805    5.04
-	0.06232565 -17.33597002    4.55
-	0.07503398 -10.50949443    4.99
-	0.08892938  -5.70783255    4.61
-	0.13976888  29.09082805    2.07
-	0.15280269  59.15021814    2.28
-	0.15583908  -27.9879039    5.42
 \end{python}
 The "RA" or "right ascension" measures the distance from a central meridian and ranges from $0$ hours to $24$ hours (which corresponds to $0\si{\degree}-360\si{\degree}$). To convert to degrees we need to multiply this column by $15$.
 The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$. The "Mag" or "magnitude" corresponds to the stars brightness. The scale is reversed: \textit{lower numbers correspond to brighter stars}.
 
-To convert from spherical coordinates to Cartesian coordinates, we need to pick a center point and project the stars in the neighborhood of this point onto a plane.  If we attempt to project all or most of the stars, this will distort the stars far from our center point, which would be undesirable considering we are trying to match shapes.  This restricts our search to small neighborhoods at a time.
+The Mollweide (or homolographic) projection is a very useful projection for plotting objects in the night’s sky. Unlike most maps you’re used to seeing of the Earth’s surface, the Mollweide projection is ``equal-area”, meaning that the area enclosed within a given, closed curve is the same as the area enclosed within the Mollweide projection of that curve. Additionally, locally, the projection is flat, meaning that the un-projected data will look the same as the projected data if you zoom in far enough (realistically, this happens at scales of a few degrees). The Mollweide projection (and its cousin, the Hammer projection) have been used for about 30 years by the Cosmic Microwave Background physics community, who have used it to represent the temperature of the universe’s nearly-constant radiation field over the whole extent of the sky.  See Figure \ref{moll} for an example Mollweide projection.
+
+\begin{figure}
+\center{\includegraphics[scale=0.15]{mollweide.png}}
+\caption{Mollweide projection of the temperature of the Cosmic Microwave Background Radiation (CMB), a nearly-uniform 2.7-Kelvin radiation source (Image: Wikipedia; Data: Wilkinson Microwave Anisotropy Probe)}
+\label{moll}
+\end{figure}
+
+
+Functionally, the Mollweide projection has equally-spaced vertical parallels, but the meridians compress significantly near the poles, so that the whole unit sphere is represented as an ellipse with an axis ratio of two to one. We decided to use it here because of the tradition surrounding it, and also because it reduces to very little distortion at small spatial scales (on the order of a few degrees, the maximum scale over which we’ll form our constellations).
 
 The Mollweide projection of a star with spherical coordinates $(\lambda,\phi)$ centered around ($\lambda_c,\phi_c$) can be obtained as follows \cite{Snyder1987}:
 $$
@@ -264,8 +273,15 @@ def project(ra, dec, c_ra, c_dec):
 \end{python}
 
 \fbox{\begin{minipage}{40em}
-\textbf{Use this script to convert the 79 stars found in $stars.mat$ to (x,y) coordinates centered at the ($\lambda_c,\phi_c)=(293, -2.8)$.}
+\textbf{Use this script to convert the 79 stars found in $stars.mat$ to (x,y) coordinates centered at ($\lambda_c,\phi_c)=(293, -2.8)$. (be sure to convert degrees to radians for the funcion defined above)}
 \end{minipage}}
+
+You should get something like this:
+\begin{figure}[!h]
+\center{\includegraphics[scale=.7]{projection.eps}}
+\captionsetup{labelformat=empty}
+\caption{}
+\end{figure}
 
 \subsection{Preliminary Search: A Clustering Approach}
 We wish to determine if there is possible good match for our feature points in the set obtained from the previous section.  Since we are only trying to match the shape and not the scale of our feature points, one approach is to find a set of stars that forms the same set of interior angles.
@@ -305,13 +321,20 @@ def GetAngles(verts):
 If we think of every set of 3 points in our search space as a specified by their interior angles (sorting the angles in ascending order uniquely determines the set's "angle representation"), we are basically looking for the 3-point sets that lie in the same cluster as our feature points. This cluster would be our "possible match" cluster.
 
 \fbox{\begin{minipage}{40em}
-\textbf{Form this as a clustering problem $X = DW$. What do $X,D,W$ look like? Say our search set contains $50$ stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
+\textbf{Form this as a clustering problem $X = DW$. What do $X,D,W$ look like? Our search set contains 79 stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
 \end{minipage}
 }
 
-Unfortunately, even with our substantially restricted search space ($30-50$ stars), the number of possible size 3 subsets is still quite large (on the order of $10^4$), and the clustering algorithms we know require you to iterate through every point. Fortunately, it turns out that solving this cluster problem in its entirety is not necessary. We are not only looking for the \textit{best fit} sets of stars, we are looking for the best fit \textit{and brightest} sets of stars. By sorting the stars by magnitude, we can prioritize clustering the brightest stars so we find the brightest, best fits.
+Unfortunately, even with our substantially restricted search space ($50-100$ stars), the number of possible size 3 subsets is still quite large (on the order of $10^4$), and the clustering algorithms we know require you to iterate through every point. Fortunately, it turns out that solving this cluster problem in its entirety is not necessary. We are not only looking for the \textit{best fit} sets of stars, we are looking for the best fit \textit{and brightest} sets of stars. By sorting the stars by magnitude, we can prioritize clustering the brightest stars so we find the brightest, best fits.
 
 So if we are looking for $m$ possible matches in our subset, we can start with a much smaller subset of brightest stars and keep adding the next-brightest star until the cluster that contains our feature points has $m$ members.
+
+This clustering approach is very valuable when searching over the whole set of stars. We can pre-compute the clustering for the combinations involving the brightest stars, and then just check which cluster our feature angles fall into to get a whole set of possible matches. For dealing with smaller search subspaces such as this one, it is actually pretty quick and efficient to just do a brute-force iteration through all possible star combinations in reverse order of brightness until we find a match that fits our features within a certain threshold. If we want $k$ possible matches, we just keep iterating until we find $k$ matches.
+
+\fbox{\begin{minipage}{40em}\textbf{
+This brute-force method only finds $k$ possible fits, where we choose $k$ ahead of time. Why might the clustering approach be more preferable?}
+\end{minipage}}
+
 
 Unfortunately, this approach doesn't scale well when our feature set is more than 3 points (most notably, the search space becomes way too large). However, matching 3 feature points to 3 stars does uniquely determine a transformation from the $(x,y)-$plane that the features lie in to the $(x,y)-$plane that the stars lie in. So rather than finding a match for the remaining points using this clustering approach, we can simply check to see if there are stars in the appropriate places to form the rest of our shape. To do this, we need to find the transformation from the $(x,y)-$coordinates of our features to the $(x,y)-$coordinates of our stars. To find this transformation, we must solve what is called the Procrustes problem.
 
@@ -328,6 +351,7 @@ Where $tr(AB^T) = \langle A,B\rangle_F = \langle B,A\rangle_F = tr(BA^T)$.
 \fbox{\begin{minipage}{40em}\textbf{
 Let $U\Sigma V^T$ be the SVD of the matrix $SF^T$. Show that the orthogonal $T$ that minimizes $||TF-S||^2_F$ is equal to $UV^T$.}\\
 Hint: $T,U$, and $V$ are orthogonal, and multiplying a vector by an orthogonal matrix doesn't change its Frobenius norm.
+Hint 2: If you're really stuck, check out \cite{Everson1997}
 \end{minipage}}
 
 Here is the Python code that solves the orthogonal Procrustes problem:
@@ -364,9 +388,9 @@ Now we have our set of feature points $[f_1,\ldots,f_n]=F$, our possible match s
 
 
 \section{Lab}
-You have been supplied: diamond.png (see Figure \ref{diamond}) and a star dataset. Perform the following: 
+You have been supplied: diamond.png (see Figure \ref{diamond}) and a subset of our star dataset $stars.mat$. Perform the following: 
 
-\begin{figure}
+\begin{figure}[!h]
 \center{\includegraphics[scale=0.5]{diamond.png}}
 \caption{diamond.png}
 \label{diamond}
@@ -377,8 +401,6 @@ You have been supplied: diamond.png (see Figure \ref{diamond}) and a star datase
   Import diamond.png to your program of choice (MATLAB or Python). Implement the edge detector of your choice to get a set of $k$ feature points that represent the shape. 
   \item 
   Implement a methodology to reduce this set of $k$ feature points to $n << k$  points. 
-  \item
-  If the shape's four sides had small amplitude sinusoids along the flat parts, how would this affect your choice of feature points? Large amplitude sinusoids?
   \item
   Pick $3$ of your $n$ points and compute the angles between them. Now find a good potential match in (star-subset) for the triangle formed by these 3 points. Iterate through all possible combinations of stars in descending order of brightness until 3 "good" matches have been found.
   \item
