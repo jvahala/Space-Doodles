@@ -28,7 +28,7 @@ def get_features():
     
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-    raw_img, image, contours, hierarchy = f_e.importImage('diamond.png')
+    raw_img, image, contours, hierarchy = f_e.importImage('shape2.png')
     cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 
 
@@ -51,12 +51,15 @@ def get_features():
     count = 0
     new_features = f_e.addFeatures(index,features,cnt,n,add_threshold)
     new_features = f_e.removeMidpoints(index,new_features,cnt,n,remove_threshold)
+    new_features[:,[0, 1]] = new_features[:,[1, 0]]
     #new_features = chooseNumFeatures(features, features, num_features, cnt, -1, n, add_threshold, remove_threshold, count)
     #print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
     best_features_sorted = f_e.findKeyFeatures(new_features)
+
     #print(best_features_sorted)
     
     #print(new_features)
+
     return [new_features, best_features_sorted[0,1]]
     #plot feature points
     plt.figure(1)
