@@ -46,7 +46,7 @@ def main():
 	frame.axes.get_yaxis().set_ticks([])
 	plt.subplot(222)
 	plt.imshow(draw_img.squeeze(),cmap='Greys')
-	plt.title('(b) Contour', fontsize=10)
+	plt.title('(b) Contour', featureffontsize=10)
 	frame = plt.gca()
 	frame.axes.get_xaxis().set_ticks([])
 	frame.axes.get_yaxis().set_ticks([])
