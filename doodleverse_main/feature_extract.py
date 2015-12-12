@@ -1,14 +1,14 @@
 import numpy as np 
 import cv2 #openCV library
-from matplotlib import pyplot as plt
-from matplotlib import image as mpimg
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 np.set_printoptions(threshold=np.nan)
 
 def main():
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-	raw_img, image, contours, hierarchy = importImage('shape1.png')
-	img_main=mpimg.imread('shape1.png')
+	raw_img, image, contours, hierarchy = importImage('shape5.png')
+	img_main=mpimg.imread('shape5.png')
 	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 	cnt2 = cleanContour(cnt) #makes distances between contour points more even
 
@@ -21,18 +21,32 @@ def main():
 	#use harris corner detector 
 	corners = getCorners(draw_img,10,0.1,50)
 	features = orderFeatures(cnt2,extrema,corners)
+	new_features = featuresOnContour(features, cnt2)
+	print('Features: \n',features,'\n\nNew: \n',new_features,'check: ', new_features[2,2],' = 449?')
 
 	#consolidate features
-	add_threshold = 0.5 #smaller values add more points (0.5 default)
-	remove_threshold = 0.65 #larger values mean less points (0.5 default)
-	n = 8#number of divisions for determining normalized error (8 default)
+	add_threshold = 0.01 #smaller values add more points (0.01 default)
+	remove_threshold = 0.01 #larger values mean less points (0.01 default)
+	clumpThresh = -70 #set negative to make it based on the 1/4 the best feature value, otherwise 70 is a good value
+	n = 20 #number of divisions for determining normalized error (5 default)
 	index = 0 #default starting index (0 default)
-
 	count = 0
-	new_features = addFeatures(index,features,cnt2,n,add_threshold)
+
+	#add a bunch of features 
+	new_features = addFeatures(index,new_features,cnt2,n,add_threshold)
+	new_features = addFeatures(index,new_features,cnt2,n,add_threshold*0.1)
+
+	#remove them slowly
 	new_features = removeMidpoints(index,new_features,cnt2,n,remove_threshold)
-	print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
+	new_features = removeMidpoints(index,new_features,cnt2,n+10,remove_threshold*20)
+	new_features = removeMidpoints(index,new_features,cnt2,n+20,remove_threshold*50)
+
+	#finalize features
 	best_features_sorted = findKeyFeatures(new_features)
+	new_features, best_features_sorted = removeClumps(new_features,best_features_sorted,clumpThresh)
+
+	print('Original/New/difference',features.shape[0],'/',new_features.shape[0],'/',new_features.shape[0]-features.shape[0])
+
 	print(best_features_sorted)
 	print(new_features)
 
@@ -46,7 +60,7 @@ def main():
 	frame.axes.get_yaxis().set_ticks([])
 	plt.subplot(222)
 	plt.imshow(draw_img.squeeze(),cmap='Greys')
-	plt.title('(b) Contour', featureffontsize=10)
+	plt.title('(b) Contour', fontsize=10)
 	frame = plt.gca()
 	frame.axes.get_xaxis().set_ticks([])
 	frame.axes.get_yaxis().set_ticks([])
@@ -66,7 +80,7 @@ def main():
 	plt.scatter(new_features[:,0],new_features[:,1],s=20,c='r',marker='x')
 	plt.plot(new_features[:,0],new_features[:,1],'r-')
 	best_index = best_features_sorted[0,1]
-	best_triangle = new_features[2:5,:]
+	best_triangle = new_features[(best_index-1):(best_index+2),:]
 	plt.scatter(best_triangle[:,0],best_triangle[:,1],s=30,facecolors='none',edgecolors='g',marker='o')
 	plt.title('(d) Optimized Features', fontsize=10)
 	plt.axis('image')
@@ -201,6 +215,7 @@ def orderFeatures(contour,extrema,corners):
 					else:
 						features = np.vstack((features,features_temp[j,:]))
 					feat_it = 2
+	features.shape = (features.shape[0],2)
 	return features
 
 """ 
@@ -254,13 +269,76 @@ dist = euclidian distance between points, absolute scalar value
 PROBLEMS:
 1. 
 """
-def distance(point_1,point_2):
+def distance(point_1a,point_2a):
 	# reshape points
-	point_1.shape = (1,2)
-	point_2.shape = (1,2)
+	point_1, point_2 = convertShape(point_1a,point_2a)
 	# calculate distance 
 	dist = np.sqrt((point_1[0,0]-point_2[0,0])**2 + (point_1[0,1]-point_2[0,1])**2)
+	#print(dist)
 	return np.abs(dist)
+
+def convertShape(point_1a,point_2a):
+	if point_1a.shape == (1,2) or point_1a.shape == (1,3) or point_1a.shape == (3,):
+		if point_1a.shape == (3,):
+			point_1a.shape = (1,3)
+			point_2a.shape = (1,3)
+		point_1 = point_1a[0,0:2]
+		point_2 = point_2a[0,0:2]
+		point_1.shape = (1,2)
+		point_2.shape = (1,2)
+	elif point_1a.shape == (2,):  
+		point_1 = point_1a
+		point_2 = point_2a
+		point_1.shape = (1,2)
+		point_2.shape = (1,2)
+	return point_1, point_2
+
+def featuresOnContour(features,contour):
+	new_features = []
+	k_log = []
+	dist_thresh = 10; 
+	for i in range(features.shape[0]):
+		count = 0
+		#look for associated contour index for each feature
+		for k in range(contour.shape[0]):
+			disti = distance(features[i,0:2],contour[k,:])
+			if disti < dist_thresh: 
+				#look for a minimum distance and set to your feature point
+				tmp_dist = disti
+				nxt_dist = distance(features[i,0:2],contour[k+1,:])
+				if tmp_dist < nxt_dist:
+					new_features.append(contour[k,:])
+					k_log.append([k])
+					break
+	new_features = np.array(new_features)
+	new_features.shape = (new_features.shape[0],2)
+	k_log = np.array(k_log)
+	#print(new_features.shape, k_log.shape)
+	new_features = np.hstack((new_features,k_log))
+
+	return new_features
+
+def removeClumps(features,values,clumpThresh):
+	#remove worst point, recalculate values, re remove worst point
+	#print(values[(values.shape[0]-1),1])
+	nthpt = int(values.shape[0] - 1)
+	worst_pt = int(values[nthpt,1])
+	if clumpThresh >= 0: 
+		thresh = clumpThresh
+	else:
+		thresh = 1/4*(values[0,0])
+	print(thresh)
+	if values[nthpt,0] < thresh:
+		print(values,'\n','bang',worst_pt)
+		features = np.delete(features,(worst_pt),(0))
+		features = np.array(features)
+		values = findKeyFeatures(features)
+		features, values = removeClumps(features, values, clumpThresh)
+	else: 
+		print(features.shape)
+	return features, values
+
+
 
 """ 
 cnt_bisect,spline_bisect = findBisect(point_1,point_2,percent_bisect,contour)
@@ -280,16 +358,25 @@ spline_bisect = 1x2 [x,y] point located at the midpoint between the points thems
 PROBLEMS:
 1. points on the contour are not linearly spaced, so direct (add the percent of total points between feature points along the contour does not work great)
 """
-def findBisect(point_1,point_2,percent_bisect,contour):
+def findBisect(point_1a,point_2a,percent_bisect,contour):
 	#reshape points
+	if point_1a.shape == (1,3) or point_1a.shape == (3):
+		point_1a.shape = (1,3)
+		pt1_ind = point_1a[0,2]
+		pt2_ind = point_2a[0,2]
+	else: 
+		print('ERROR no contour index')
+	#point_1, point_2 = convertShape(point_1a,point_2a)
+	point_1 = contour[pt1_ind,:]
+	point_2 = contour[pt2_ind,:]
 	point_1.shape = (1,2)
 	point_2.shape = (1,2)
 	contour.shape = (contour.shape[0],2)
 	contour_long = np.vstack((contour,contour))
 	contour_long.shape = (contour_long.shape[0],2)
 	#initialize 
-	skip_1 = 0
-	skip_2 = 0
+	#skip_1 = 0
+	#skip_2 = 0
 	#get split point between spline of points
 	x_spline = int(point_1[0,0] - (point_1[0,0] - point_2[0,0])*(1-percent_bisect))
 	y_spline = int(point_1[0,1] - (point_1[0,1] - point_2[0,1])*(1-percent_bisect))
@@ -297,7 +384,7 @@ def findBisect(point_1,point_2,percent_bisect,contour):
 	spline_bisect.shape = (1,2)
 	#get contour bisect between the two points
 	#move along contour to find contour point numbers for both point 1 and 2. Set flag that point has been found when done
-	for i in range(contour.shape[0]-1): 
+	"""for i in range(contour.shape[0]-1): 
 		dist1 = distance(point_1,contour[i,:])
 		dist2 = distance(point_2,contour[i,:])
 		#print('dist1/dist2: ',dist1,' / ', dist2,'    skip1/skip2: ',skip_1, ' / ', skip_2)
@@ -333,13 +420,32 @@ def findBisect(point_1,point_2,percent_bisect,contour):
 			cnt_index = cnt_1_shift - contour.shape[0]
 			if total_points > contour.shape[0]/2:
 				total_points = 2*contour.shape[0] - cnt_2_shift
-				cnt_index = cnt_2_shift - contour.shape[0]
-			
+				cnt_index = cnt_2_shift - contour.shape[0]"""
+
+	pt1_larger = (pt1_ind >= pt2_ind)
+	pt1_shift = pt1_ind + contour.shape[0]
+	pt2_shift = pt2_ind + contour.shape[0]
+	if pt1_larger:
+		total_points = pt1_shift - pt2_shift
+		cnt_index = pt2_shift -contour.shape[0]
+		if total_points > contour.shape[0]/2: 
+			total_points = 2*contour.shape[0] - pt1_shift 
+			cnt_index = pt1_shift - contour.shape[0]
+	else:
+		total_points = pt2_shift - pt1_shift
+		cnt_index = pt1_shift -contour.shape[0]
+		if total_points > contour.shape[0]/2: 
+			total_points = 2*contour.shape[0] - pt2_shift 
+			cnt_index = pt2_shift - contour.shape[0]
+
+
 		#print(cnt_index)
-		cnt_index = cnt_index + int(total_points*(1-percent_bisect))
+	cnt_index = cnt_index + int(total_points*(1-percent_bisect))
 		#print(cnt_index)
-		cnt_bisect = contour[cnt_index,:]
-		cnt_bisect.shape = (1,2)
+	cnt_bisect = contour[cnt_index,:]
+	cnt_bisect = np.hstack((cnt_bisect,[cnt_index]))
+	#print(cnt_bisect)
+	cnt_bisect.shape = (1,3)
 	return cnt_bisect, spline_bisect
 
 """ 
@@ -368,7 +474,10 @@ def getNormError(point_1,point_2,contour,n):
 	for i in range(n):
 		cnt_bisect, spline_bisect = findBisect(point_1,point_2,percent[i],contour)
 		absError = absError + distance(cnt_bisect,spline_bisect)
-	normError = absError / dist_p1p2
+	if dist_p1p2 > 10:
+		normError = absError / (dist_p1p2 * 1.25)
+	else:
+		normError = 0; 
 	#print('absError/dist_p1p2/normError: ', absError,' / ', dist_p1p2, ' / ', normError) 
 	return normError 
 
@@ -392,16 +501,31 @@ PROBLEMS:
 """
 def removeMidpoints(pt1_index, features, contour, n, threshold):
 	#will need to add in wrap around ability and other indexing stuff
-	pt2_index = pt1_index + 1
-	if pt2_index < features.shape[0] - 1:
-		normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
-		normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
-		if normErr_13-normErr_12 < threshold:
-			features  = np.delete(features,(pt2_index),(0))
-			features = removeMidpoints(pt1_index,features,contour,n,threshold)
-		else: 
-			pt1_index = pt1_index+1
-			features = removeMidpoints(pt1_index,features,contour,n,threshold)
+	if pt1_index < 0:
+		pt1_index = abs(pt1_index)
+		pt2_index = pt1_index - 1
+		if pt2_index > 0:
+			normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
+			normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
+			if normErr_13-normErr_12 < threshold:
+				features  = np.delete(features,(pt2_index),(0))
+				pt1_index = -1*(pt1_index - 1)
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
+			else: 
+				pt1_index = -1*(pt1_index-1)
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
+	elif pt1_index >= 0:
+		#print('hit')
+		pt2_index = pt1_index + 1
+		if pt2_index < features.shape[0] - 1:
+			normErr_12 = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
+			normErr_13 = getNormError(features[pt1_index,:],features[pt2_index+1,:], contour, n)
+			if normErr_13-normErr_12 < threshold:
+				features  = np.delete(features,(pt2_index),(0))
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
+			else: 
+				pt1_index = pt1_index+1
+				features = removeMidpoints(pt1_index,features,contour,n,threshold)
 	return features 
 
 """ 
@@ -428,10 +552,14 @@ def addFeatures(pt1_index, features, contour, n, threshold):
 		#print(features.shape[0], ' wow')
 		normErr = getNormError(features[pt1_index,:],features[pt2_index,:], contour, n)
 		#print('normErr: ', normErr)
-		if normErr > threshold and normErr < 1000:
-			#print('whoops ')
+		if normErr > threshold and normErr < 100:
+			#print('whoops ',features[pt1_index,:].shape)
+			pt1 = features[pt1_index,:]
+			pt2 = features[pt2_index,:]
+			pt1.shape = (1,3)
+			pt2.shape = (1,3)
 			#do stuff 
-			cnt_bisect,spline_bisect = findBisect(features[pt1_index,:],features[pt2_index,:],0.5,contour)
+			cnt_bisect,spline_bisect = findBisect(pt1,pt2,0.5,contour)
 			features = np.insert(features, pt2_index, cnt_bisect, axis = 0 )
 			pt1_index = pt1_index+2
 			features = addFeatures(pt1_index, features, contour, n, threshold)
@@ -471,7 +599,7 @@ def findKeyFeatures(features):
 		vec2_u = vec2/np.linalg.norm(vec2)
 		angle = np.arccos(np.dot(vec1_u,vec2_u))
 		if np.isnan(angle):
-			if vec1_u == vec2_u:
+			if vec1_u.all() == vec2_u.all():
 				angle = 0.0
 			else:
 				angle = np.pi
