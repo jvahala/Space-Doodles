@@ -17,11 +17,13 @@ def main():
     star_tab = search.StarTable()
 
     featpoints = []
-
-    for i in range(feature_points.shape[0]-1):
-        featpoints.append(search.Point(feature_points[i]))   
     
-    featset = search.FeatureSet(data=featpoints)
+    for point in feature_points:
+        featpoints.append(search.Point(point))
+    
+    featset = search.SetOfPoints()
+    
+    featset.append(featpoints)
     
     search.Search(star_tab, featset)
 
