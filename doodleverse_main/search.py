@@ -22,7 +22,27 @@ def main():
     
     featset.append(featpoints)
 
-    Search(star_tab,featset)
+    num_tries = 50
+    
+    mag_constant = .25
+    
+    searches = []
+    searchscores = []
+    
+    for i in range(num_tries):
+        searchdata = Search(star_tab,featset)
+        searches.append(searchdata)
+        searchdata.evaluate(mag_constant)
+        searchscores.append(searchdata.score)
+        
+    bestsearchID = np.argmin(searchscores)
+    
+    bestsearch = searches[bestsearchID]
+            
+    PlotEverything(bestsearch)
+    
+    print('Average mag is:',bestsearch.avgmag)
+    print('Score is:',bestsearch.score)
     
 def Search(star_tab, featset):
 
@@ -80,15 +100,20 @@ def Search(star_tab, featset):
     final_match = second_search_subset.GetSubset(final_match_subset_indices)    
     
     #evaluate final match:
-    
-    
+    [R,T,scale] = featset.Procrustes(final_match, range(final_match.length))
+    final_featprime = featset.Transform(R,T,scale)
         
-    # Plot everything...
-        
+    searchdata = SearchData(featset, feat_subindices, first_search_subset, first_match_indices, second_search_subset, final_featprime, final_match, final_match_subset_indices)
+    
+    return searchdata
+    
+def PlotEverything(searchdata):
+    # Plot everything...    
+    
     # Original feature points connected
     
-    featsetfull = np.vstack((featset.matrix,featset.matrix[0]))
-    lbound, ubound = GetBounds(featset.matrix)        
+    featsetfull = np.vstack((searchdata.featset.matrix,searchdata.featset.matrix[0]))
+    lbound, ubound = GetBounds(searchdata.featset.matrix)        
     plt.figure()
     plt.plot(featsetfull[:,0],featsetfull[:,1])        
     plt.xlim([lbound,ubound])
@@ -99,31 +124,33 @@ def Search(star_tab, featset):
 
     # Original feature points
     
-    lbound, ubound = GetBounds(featset.matrix)    
+    lbound, ubound = GetBounds(searchdata.featset.matrix)    
     
     plt.figure()
-    for i in range(featset.length):
-        if i in feat_subindices:
-            plt.scatter(featset.matrix[i,0],featset.matrix[i,1],s=50,c='r')
+    for i in range(searchdata.featset.length):
+        if i in searchdata.feat_subindices:
+            plt.scatter(searchdata.featset.matrix[i,0],searchdata.featset.matrix[i,1],s=50,c='r')
         else:
-            plt.scatter(featset.matrix[i,0],featset.matrix[i,1])
+            plt.scatter(searchdata.featset.matrix[i,0],searchdata.featset.matrix[i,1])
     plt.xlim([lbound,ubound])
     plt.ylim([lbound,ubound])
     plt.title('Original Feature Points, triangle in red')
     plt.show()
     
     # Plot first search set
-
-    lbound, ubound = GetBounds(first_search_subset.matrix)
     
-    matches = first_search_subset.LookUp(first_match_indices)
+    
+
+    lbound, ubound = GetBounds(searchdata.first_search_subset.matrix)
+    
+    matches = searchdata.first_search_subset.LookUp(searchdata.first_match_indices)
 
     plt.figure()
-    for i in range(first_search_subset.length):
+    for i in range(searchdata.first_search_subset.length):
         if i in matches:
-            plt.scatter(first_search_subset.matrix[i,0],first_search_subset.matrix[i,1],s=50,c='r')
+            plt.scatter(searchdata.first_search_subset.matrix[i,0],searchdata.first_search_subset.matrix[i,1],s=50,c='r',alpha = 1-searchdata.first_search_subset.mags[i])
         else:
-            plt.scatter(first_search_subset.matrix[i,0],first_search_subset.matrix[i,1],c=[0,0,0])
+            plt.scatter(searchdata.first_search_subset.matrix[i,0],searchdata.first_search_subset.matrix[i,1],c=[0,0,0],alpha = 1-searchdata.first_search_subset.mags[i])
     plt.xlim([lbound,ubound])
     plt.ylim([lbound,ubound])
     plt.title('First search space, triangle match in red')
@@ -132,24 +159,43 @@ def Search(star_tab, featset):
 
     # Plot second search set
 
-    lbound, ubound = GetBounds(second_search_subset.matrix)
+    lbound, ubound = GetBounds(searchdata.second_search_subset.matrix)
 
     plt.figure()
-    for i in range(second_search_subset.length):
-        if i in final_match_subset_indices:
-            plt.scatter(second_search_subset.matrix[i,0],second_search_subset.matrix[i,1],s=50,c='r')
+    for i in range(searchdata.second_search_subset.length):
+        if i in searchdata.final_match_subset_indices:
+            plt.scatter(searchdata.second_search_subset.matrix[i,0],searchdata.second_search_subset.matrix[i,1],s=50,c='r',alpha = 1-searchdata.second_search_subset.mags[i])
         else:
-            plt.scatter(second_search_subset.matrix[i,0],second_search_subset.matrix[i,1],c=[0,0,0])
+            plt.scatter(searchdata.second_search_subset.matrix[i,0],searchdata.second_search_subset.matrix[i,1],c=[0,0,0], alpha = 1-searchdata.second_search_subset.mags[i])
+    # Plot dotted line connecting stars
+    x = searchdata.second_search_subset.matrix[searchdata.final_match_subset_indices,0]
+    y = searchdata.second_search_subset.matrix[searchdata.final_match_subset_indices,1]
+    x = np.hstack((x,x[0]))
+    y = np.hstack((y,y[0]))
+    plt.plot(x,y,'b--')
     plt.xlim([lbound,ubound])
     plt.ylim([lbound,ubound])
     plt.title('Second search space, match in red')
     plt.show()
     
+    # Final match vs original points
+    
+    lbound, ubound = GetBounds(np.vstack((searchdata.final_featprime.matrix,searchdata.final_match.matrix)))
+    
+    plt.figure()
+    for i in range(searchdata.final_featprime.length):
+        plt.scatter(searchdata.final_featprime.matrix[i,0],searchdata.final_featprime.matrix[i,1],s=50,c='b')
+        plt.scatter(searchdata.final_match.matrix[i,0],searchdata.final_match.matrix[i,1],s=50,c='r')
+    plt.xlim([lbound,ubound])
+    plt.ylim([lbound,ubound])
+    plt.title('Final match stars in Red, Original Feature Points in Blue')
+    plt.show()
+    
     
     # final match connected
     
-    finalmatchfull = np.vstack((final_match.matrix,final_match.matrix[0]))
-    lbound, ubound = GetBounds(final_match.matrix)        
+    finalmatchfull = np.vstack((searchdata.final_match.matrix,searchdata.final_match.matrix[0]))
+    lbound, ubound = GetBounds(searchdata.final_match.matrix)        
     plt.figure()
     plt.plot(finalmatchfull[:,0],finalmatchfull[:,1])        
     plt.xlim([lbound,ubound])
@@ -166,6 +212,32 @@ def GetBounds(data):
     
     return lbound, ubound
     
+    
+class SearchData:
+    def __init__(self, featset, feat_subindices, first_search_subset, first_match_indices, second_search_subset, final_featprime, final_match, final_match_subset_indices):
+        self.featset = featset
+        self.feat_subindices = feat_subindices
+        self.first_search_subset = first_search_subset
+        self.first_match_indices = first_match_indices
+        self.second_search_subset = second_search_subset
+        self.final_featprime = final_featprime
+        self.final_match = final_match
+        self.final_match_subset_indices = final_match_subset_indices
+
+    def evaluate(self, mag_constant = .05):
+    
+        score = 0
+        
+        for i in range(self.final_featprime.length):
+            score += np.linalg.norm(self.final_featprime.points[i].xy-self.final_match.points[i].xy) + mag_constant*self.final_match.points[i].mag
+        
+        final_mags = []
+        for point in self.final_match.points:
+            final_mags.append(point.mag)
+            
+        self.score = score
+        self.avgmag = np.mean(final_mags)
+
 
 class StarTable:
     def __init__(self, file = 'hyg_catalog.fits'):
@@ -173,6 +245,11 @@ class StarTable:
         # convert hours to degrees
         self.tab['RA'] = self.tab['RA']*15
         self.num_stars = len(self.tab)
+        
+        # normalize magnitudes so they are 0-1 exclusive
+        maxmag = max(self.tab['Mag'])
+        minmag = min(self.tab['Mag'])
+        self.tab['Mag'] = (self.tab['Mag']-minmag)/(maxmag-minmag+.01)+10**-6
         
     def ClosestStars(self, center_index, radius):
         """

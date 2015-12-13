@@ -10,7 +10,7 @@ def main():
     
     plt.close("all")    
     
-    [feature_points, bestpoint] = get_features('shape5.png')
+    [feature_points, bestpoint] = get_features('mj.png')
     
     print(feature_points,bestpoint)
     
@@ -25,7 +25,31 @@ def main():
     
     featset.append(featpoints)
     
-    search.Search(star_tab, featset)
+    num_tries = 1
+    
+    # How much to weight magnitude
+    # >10 mostly care about magnitude
+    # <1 mostly care about best fit
+    mag_lambda = 1
+    
+    searches = []
+    searchscores = []
+    
+    for i in range(num_tries):
+        searchdata = search.Search(star_tab,featset)
+        searchdata.evaluate(mag_lambda)
+        searches.append(searchdata)
+        searchscores.append(searchdata.score)
+        
+    bestsearchID = np.argmin(searchscores)
+    
+    bestsearch = searches[bestsearchID]
+            
+    search.PlotEverything(bestsearch)
+    
+    print('Average mag is:',bestsearch.avgmag)
+    print('Score is:',bestsearch.score)
+    
 
 def get_features(image_name):    
     
