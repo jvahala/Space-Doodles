@@ -1,6 +1,7 @@
 
 import numpy as np
 import search
+import clustersearch
 import feature_extract as f_e
 import matplotlib.pyplot as plt
 from matplotlib import image as mpimg
@@ -10,7 +11,7 @@ def main():
     
     plt.close("all")    
     
-    [feature_points, bestpoint] = get_features('shape1.png')
+    [feature_points, bestpoint] = get_features('mj.png')
     
     print(feature_points,bestpoint)
     
@@ -33,7 +34,7 @@ def main():
     searchscores = []
     
     for i in range(num_tries):
-        searchdata = Search(star_tab,featset, mag_constant)
+        searchdata = clustersearch.Search(star_tab,featset, mag_constant)
         searches.append(searchdata)
         searchdata.evaluate(mag_constant)
         searchscores.append(searchdata.score)
@@ -42,7 +43,7 @@ def main():
     
     bestsearch = searches[bestsearchID]
             
-    PlotEverything(bestsearch)
+    clustersearch.PlotEverything(bestsearch)
     
     print('Average mag is:',bestsearch.avgmag)
     print('Score is:',bestsearch.score)
