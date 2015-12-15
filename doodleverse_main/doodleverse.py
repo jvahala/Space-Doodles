@@ -63,14 +63,14 @@ def get_features(image_name):
     extrema = f_e.getExtrema(cnt)
 
     #use harris corner detector 
-    corners = f_e.getCorners(draw_img,10,0.1,50)
+    corners = f_e.getCorners(draw_img,50,0.01,50)
     features = f_e.orderFeatures(cnt,extrema,corners)
 
 
     #consolidate features
     add_threshold = 0.01 #smaller values add more points (0.01 default)
     remove_threshold = 0.01 #larger values mean less points (0.01 default)
-    clumpThresh = +70 #set negative to make it based on the 1/4 the best feature value, otherwise 70+ is a good value, higher values mean less points
+    clumpThresh = -70 #set negative to make it based on the 1/4 the best feature value, otherwise 70+ is a good value, higher values mean less points
     n = 20 #number of divisions for determining normalized error (5 default)
     index = 0 #default starting index (0 default)
     count = 0
