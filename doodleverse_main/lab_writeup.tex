@@ -181,6 +181,10 @@ The local maxima from this approach yields the corners found in the image. By th
 \fbox{\begin{minipage}{40em}
 \textbf{Given an arbitrary two-dimensional shape, determine some candidate feature points that will always exist.}
 \end{minipage}}
+
+\fbox{\begin{minipage}{40em}
+\textbf{Answer:} \\ You'll always get the extreme points (the top-, bottom-, left-, and right-most points).
+\end{minipage}}
 \\
 \\
 \\
@@ -199,6 +203,10 @@ Finally, in order to turn our $m$ feature points into the $n$ feature points tha
 
 \fbox{\begin{minipage}{40em}
 \textbf{With the star dataset being used in this application taken into consideration, why is it so important to represent the shape in as few feature points as possible?}
+\end{minipage}}
+
+\fbox{\begin{minipage}{40em}
+\textbf{Answer:} Using every point on the border as a feature point gives very little \textit{real} information, and will make it impossible to map between those $N \sim$ 2,000 points and the $M \sim$ 500 stars in our catalog.
 \end{minipage}}
 
 Finally, our approach that will be discussed later depends on picking three important initial feature points, so we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{p_i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. An example of the key feature points is identified in Figure \ref{feat_detect}(d). 
@@ -277,6 +285,10 @@ def project(ra, dec, c_ra, c_dec):
 \textbf{Use this script to convert the 79 stars found in $stars.mat$ to (x,y) coordinates centered at ($\lambda_c,\phi_c)=(293, -2.8)$. (we have converted hours to degrees for you, but be sure to convert degrees to radians for the funcion defined above)}
 \end{minipage}}
 
+\fbox{\begin{minipage}{40em}
+\textbf{Answer:} Answers will vary, but the results should look like the figure.
+\end{minipage}}
+
 You should get something like this:
 \begin{figure}[!h]
 \center{\includegraphics[scale=.7]{projection.eps}}
@@ -349,6 +361,24 @@ Hint: $T,U$, and $V$ are orthogonal, and multiplying a vector by an orthogonal m
 Hint 2: If you are really stuck, consult \cite{Everson1997}.
 \end{minipage}}
 
+\fbox{\begin{minipage}{40em}
+\textbf{Answer:} \\
+By the property of the trace, 
+
+$$ T^* = argmin_T ||T F - S||_F^2 $$
+
+$$ T^* = argmin_T~tr((T F-S)(T F-S))^T$$
+
+$$ T^* = argmax_T~tr(S F^T T^T) $$
+
+$$ T^* = argmax_T~tr(U \Sigma V^T T^T) $$
+
+$$ T^* = argmax_T~tr(U^T T V \Sigma) $$
+
+$U^T T V$ is orthogonal, so $tr(U^T T V \Sigma) \le tr(\Sigma)$. When $T=U V^T$, $U^T T V = I$, and so $tr(U^T T V \Sigma) = tr(\Sigma)$. So $T^*=U V^T$ is a minimizer.
+
+\end{minipage}}
+
 Here is the Python code that solves the orthogonal Procrustes problem:
 
 \begin{python}
@@ -414,5 +444,8 @@ mean(y \textrm{ coordinates of } F)
 \bibliography{cited_papers}
 \bibliographystyle{ieeetr}
 
+\section*{Appendix: Results}
+
+We (the authors) managed to get the whole thing running, tip-to-tail, including a somewhat improved clustering approach (above and beyond what was presented in the lab originally). Basically, by finding the position of the initial triangle in feature-space (determined by its angles), we can associate it with one of several ``clusters" of triangles formed by stars in our catalog. This matching allows a smaller sub-sample of stars, that we \textit{can} exhaustively search for a good overall match.
 
 \end{document}
