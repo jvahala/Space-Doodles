@@ -2,12 +2,13 @@ import numpy as np
 import cv2 #openCV library
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import math
 np.set_printoptions(threshold=np.nan)
 
 def main():
 	 #import image as black/white 
 	 #example shapes: shape1.png (odd,no int), shape2.png (odd,no int), shape3.png (rounded, no int)
-	raw_img, image, contours, hierarchy = importImage('shape5.png')
+	raw_img, image, contours, hierarchy = importImage('shape3.png')
 	img_main=mpimg.imread('shape5.png')
 	cnt = contours[1] #contour zero is border, contour 1 is outermost contour, ...etc
 	cnt2 = cleanContour(cnt) #makes distances between contour points more even
@@ -19,15 +20,15 @@ def main():
 	extrema = getExtrema(cnt2)
 
 	#use harris corner detector 
-	corners = getCorners(draw_img,10,0.1,50)
+	corners = getCorners(draw_img,50,0.01,50) #maximum 50 points of 0.01 quality factor and 50 min distance
 	features = orderFeatures(cnt2,extrema,corners)
 	new_features = featuresOnContour(features, cnt2)
-	print('Features: \n',features,'\n\nNew: \n',new_features,'check: ', new_features[2,2],' = 449?')
+	print('Features: \n',features,'\n\nNew: \n',new_features,'check: ')
 
 	#consolidate features
 	add_threshold = 0.01 #smaller values add more points (0.01 default)
 	remove_threshold = 0.01 #larger values mean less points (0.01 default)
-	clumpThresh = -70 #set negative to make it based on the 1/4 the best feature value, otherwise 70 is a good value
+	clumpThresh = -70 #set negative to make it based on the 1/4 the best feature value, otherwise choose 10 to 100 
 	n = 20 #number of divisions for determining normalized error (5 default)
 	index = 0 #default starting index (0 default)
 	count = 0
@@ -241,8 +242,9 @@ def cleanContour(contour):
 		if dist_pts > .99 and dist_pts < 1.01:
 			new_contour = np.vstack((new_contour,contour[k,:]))
 		elif dist_pts > 1.41 and dist_pts <1.42:
+		#elif dist_pts > 1.41
 			point_1 = contour[k,:]
-			point_2 = contour[k,:]
+			point_2 = contour[k+1,:]
 			point_1.shape = (1,2)
 			point_2.shape = (1,2)
 			percent_bisect = 0.5
@@ -250,7 +252,7 @@ def cleanContour(contour):
 			y_spline = int(point_1[0,1] - (point_1[0,1] - point_2[0,1])*(1-percent_bisect))
 			spline_bisect = np.array([x_spline,y_spline])
 			spline_bisect.shape = (1,2)
-			new_contour = np.vstack((new_contour,spline_bisect,contour[k,:]))
+			new_contour = np.vstack((new_contour,spline_bisect,contour[k+1,:]))
 	new_contour.shape = (new_contour.shape[0],1,2)
 	return new_contour 
 
@@ -277,6 +279,22 @@ def distance(point_1a,point_2a):
 	#print(dist)
 	return np.abs(dist)
 
+""" 
+point_1, point_2 = convertShape(point_1a,point_2a)
+
+Function purpose: return euclidian distance between points
+
+INPUTS: 
+point_1a = [x,y] array that can be shaped into a 1 by 2 array
+point_2a = [x,y] array that can be shaped into a 1 by 2 array
+
+OUTPUTS: 
+point_1 = [x,y] array 1x2
+point_2 = [x,y] array 1x2
+
+PROBLEMS:
+1. 
+"""
 def convertShape(point_1a,point_2a):
 	if point_1a.shape == (1,2) or point_1a.shape == (1,3) or point_1a.shape == (3,):
 		if point_1a.shape == (3,):
@@ -293,6 +311,21 @@ def convertShape(point_1a,point_2a):
 		point_2.shape = (1,2)
 	return point_1, point_2
 
+""" 
+new_features = featuresOnContour(features,contour)
+
+Function purpose: return euclidian distance between points
+
+INPUTS: 
+features = set of features given as an m x 2 array 
+contour = set of m x 2 contour points 
+
+OUTPUTS: 
+new_features = m x 3 array of features that include the contour index as a third element 
+
+PROBLEMS:
+1. 
+"""
 def featuresOnContour(features,contour):
 	new_features = []
 	k_log = []
@@ -315,27 +348,45 @@ def featuresOnContour(features,contour):
 	k_log = np.array(k_log)
 	#print(new_features.shape, k_log.shape)
 	new_features = np.hstack((new_features,k_log))
-
 	return new_features
 
+""" 
+features, values = removeClumps(features,values,clumpThresh)
+
+Function purpose: return euclidian distance between points
+
+INPUTS: 
+features = set of features given as an m x 3 that includes the contour index
+values = set of ordered feature point values based on strong angles and large distances between points
+clumpThresh = threshold for keeping a feature point based on the value associated with the feature in values, set negative to base it on your set of values instead of being hard coded
+
+OUTPUTS: 
+features = m-k x 3 array of features without k badly valued features
+values = new set of values for the array 
+
+PROBLEMS:
+1. 
+"""
 def removeClumps(features,values,clumpThresh):
 	#remove worst point, recalculate values, re remove worst point
 	#print(values[(values.shape[0]-1),1])
 	nthpt = int(values.shape[0] - 1)
 	worst_pt = int(values[nthpt,1])
-	if clumpThresh >= 0: 
-		thresh = clumpThresh
-	else:
-		thresh = 1/4*(values[0,0])
-	print(thresh)
-	if values[nthpt,0] < thresh:
-		print(values,'\n','bang',worst_pt)
-		features = np.delete(features,(worst_pt),(0))
-		features = np.array(features)
-		values = findKeyFeatures(features)
-		features, values = removeClumps(features, values, clumpThresh)
-	else: 
-		print(features.shape)
+	print('std: ', np.std(values[:,0]))
+	if nthpt > 3: 
+		if clumpThresh >= 0: 
+			thresh = clumpThresh
+		else:
+			thresh = 1/3*(values[0,0]-2*np.std(values[:,0]))
+		print(thresh)
+		if values[nthpt,0] < thresh:
+			print(values,'\n','bang',worst_pt)
+			features = np.delete(features,(worst_pt),(0))
+			features = np.array(features)
+			values = findKeyFeatures(features)
+			features, values = removeClumps(features, values, clumpThresh)
+		else: 
+			print(features.shape)
 	return features, values
 
 
@@ -382,45 +433,6 @@ def findBisect(point_1a,point_2a,percent_bisect,contour):
 	y_spline = int(point_1[0,1] - (point_1[0,1] - point_2[0,1])*(1-percent_bisect))
 	spline_bisect = np.array([x_spline,y_spline])
 	spline_bisect.shape = (1,2)
-	#get contour bisect between the two points
-	#move along contour to find contour point numbers for both point 1 and 2. Set flag that point has been found when done
-	"""for i in range(contour.shape[0]-1): 
-		dist1 = distance(point_1,contour[i,:])
-		dist2 = distance(point_2,contour[i,:])
-		#print('dist1/dist2: ',dist1,' / ', dist2,'    skip1/skip2: ',skip_1, ' / ', skip_2)
-		if (dist1 < 10) and (skip_1 == 0):
-			tmp_dist = distance(point_1,contour[i,:])
-			nxt_dist = distance(point_1,contour[i+1,:])
-			if tmp_dist < nxt_dist:
-				cnt_pt_1 = i 
-				skip_1 = 1
-				#print("\npoint 1 found. \n")
-		if (dist2 < 10) and (skip_2 == 0):
-			tmp_dist = distance(point_2,contour[i,:])
-			nxt_dist = distance(point_2,contour[i+1,:])
-			if tmp_dist < nxt_dist:
-				cnt_pt_2 = i 
-				skip_2 = 1
-				#print('\npoint 2 found. \n')
-	#if flag for points being found are valid, count number of points and return [x,y] coordinate of that bisecting point, else print error that both points not found
-	if (skip_1 == 1) and (skip_2 == 1):
-		cnt_1_larger = cnt_pt_1 > cnt_pt_2
-		#print(cnt_1_larger, cnt_pt_1, cnt_pt_2, contour.shape[0])
-		cnt_1_shift = cnt_pt_1 + contour.shape[0]
-		cnt_2_shift = cnt_pt_2 + contour.shape[0]
-		if cnt_1_larger:
-			total_points = cnt_1_shift - cnt_2_shift 
-			cnt_index = cnt_2_shift - contour.shape[0]
-			if total_points > contour.shape[0]/2:
-				total_points = 2*contour.shape[0] - cnt_1_shift
-				cnt_index = cnt_1_shift - contour.shape[0]
-			
-		else:
-			total_points = cnt_2_shift - cnt_1_shift 
-			cnt_index = cnt_1_shift - contour.shape[0]
-			if total_points > contour.shape[0]/2:
-				total_points = 2*contour.shape[0] - cnt_2_shift
-				cnt_index = cnt_2_shift - contour.shape[0]"""
 
 	pt1_larger = (pt1_ind >= pt2_ind)
 	pt1_shift = pt1_ind + contour.shape[0]
@@ -608,33 +620,6 @@ def findKeyFeatures(features):
 		most_important_sorted = sorted(most_important,key=lambda x: x[0], reverse = True)
 		most_important_sorted = np.array(most_important_sorted)
 	return most_important_sorted
-
-
-def chooseNumFeatures(old_features, features, num_features,contour,last, n, add_thresh, remove_thresh, count):
-	index = 0
-	count = count + 1
-	if count > 10:
-		return features
-	print('features/addthresh/removethresh: ', features.shape[0], add_thresh, remove_thresh, last)
-	if features.shape[0] == num_features:
-		return features
-	if features.shape[0] < num_features:
-		#if last == 1: 
-			#add_thresh = add_thresh /2 
-			#add_thresh = add_thresh + 0.1
-		if last == -1: 
-			remove_thresh = remove_thresh - 0.1
-	elif features.shape[0] > num_features:
-		#if last == 1: 
-			#add_thresh = add_thresh - 0.1
-		if last == -1: 
-			#add_thresh = add_thresh/2
-			remove_thresh = remove_thresh + 0.25
-	last = -1*last 
-	features = addFeatures(index,old_features,contour,n,add_thresh)
-	features = removeMidpoints(index,old_features,contour,n,remove_thresh)
-	features = chooseNumFeatures(old_features, features, num_features, contour, last, n, add_thresh, remove_thresh,count)
-	return features 
 
 
 if __name__ == '__main__': main()
