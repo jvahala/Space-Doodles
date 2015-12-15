@@ -1,0 +1,20 @@
+Zhenyu Zhang:
+    - First warm-up question is not really answered. No indication that it wasn't understood.
+    - Projection looks good
+    - Clustering problem question not fully addressed in writing, and the answer given sort of misses the point: i.e., we can pinpoint a group of stars in feature-space, and then do an exhaustive search to find the best match overall among the points belonging to that cluster.
+    - Proof of the orthogonal Procrustes problem not done at all
+    - Procrustes implementation looks fine
+    - no discussion of penalizing dim stars
+    - mapping the diamond looks fine, and results in a reasonably good fit.
+overall grade: 85/100
+
+Lingjiao Chen:
+    - basically addresses all the points we wanted, including the proof of the orthogonal Procrustes problem. Penalizing dim stars is skipped (beyond hand-waving), but overall pretty good.
+overall grade: 98/100
+
+Brandon Quach:
+    - again sort of misses the point of the clustering approach
+    - orthogonal Procrustes problem not proven, but solution is found
+    - penalizer not addressed
+    - overall unfinished: maybe this person found the lab too long...
+overall grade: 80/100
