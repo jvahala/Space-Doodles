@@ -11,7 +11,7 @@ def main():
     
     plt.close("all")    
     
-    [feature_points, bestpoint] = get_features('mj.png')
+    [feature_points, bestpoint] = get_features('shape1.png')
     
     print(feature_points,bestpoint)
     
@@ -27,12 +27,11 @@ def main():
     featset.append(featpoints)
     
     num_tries = 1
-    
-    mag_constant = .5
+    mag_constant = 0.5
     
     searches = []
     searchscores = []
-    
+
     for i in range(num_tries):
         searchdata = clustersearch.Search(star_tab,featset, mag_constant)
         searches.append(searchdata)
@@ -67,11 +66,10 @@ def get_features(image_name):
     corners = f_e.getCorners(draw_img,50,0.01,50)
     features = f_e.orderFeatures(cnt,extrema,corners)
 
-
     #consolidate features
     add_threshold = 0.01 #smaller values add more points (0.01 default)
     remove_threshold = 0.01 #larger values mean less points (0.01 default)
-    clumpThresh = -70 #set negative to make it based on the 1/4 the best feature value, otherwise 70+ is a good value, higher values mean less points
+    clumpThresh = -100 #set negative to make it based on the 1/4 the best feature value, otherwise 70+ is a good value, higher values mean less points
     n = 20 #number of divisions for determining normalized error (5 default)
     index = 0 #default starting index (0 default)
     count = 0
