@@ -10,7 +10,7 @@ def main():
     
     plt.close("all")    
     
-    [feature_points, bestpoint] = get_features('mj.png')
+    [feature_points, bestpoint] = get_features('shape1.png')
     
     print(feature_points,bestpoint)
     
@@ -27,29 +27,25 @@ def main():
     
     num_tries = 1
     
-    # How much to weight magnitude
-    # >10 mostly care about magnitude
-    # <1 mostly care about best fit
-    mag_lambda = 1
+    mag_constant = .5
     
     searches = []
     searchscores = []
     
     for i in range(num_tries):
-        searchdata = search.Search(star_tab,featset)
-        searchdata.evaluate(mag_lambda)
+        searchdata = Search(star_tab,featset, mag_constant)
         searches.append(searchdata)
+        searchdata.evaluate(mag_constant)
         searchscores.append(searchdata.score)
         
     bestsearchID = np.argmin(searchscores)
     
     bestsearch = searches[bestsearchID]
             
-    search.PlotEverything(bestsearch)
+    PlotEverything(bestsearch)
     
     print('Average mag is:',bestsearch.avgmag)
     print('Score is:',bestsearch.score)
-    
 
 def get_features(image_name):    
     
@@ -74,7 +70,7 @@ def get_features(image_name):
     #consolidate features
     add_threshold = 0.01 #smaller values add more points (0.01 default)
     remove_threshold = 0.01 #larger values mean less points (0.01 default)
-    clumpThresh = -70 #set negative to make it based on the 1/4 the best feature value, otherwise 70+ is a good value, higher values mean less points
+    clumpThresh = +70 #set negative to make it based on the 1/4 the best feature value, otherwise 70+ is a good value, higher values mean less points
     n = 20 #number of divisions for determining normalized error (5 default)
     index = 0 #default starting index (0 default)
     count = 0

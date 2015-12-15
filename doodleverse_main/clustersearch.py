@@ -25,13 +25,13 @@ def main():
 
     num_tries = 1
     
-    mag_constant = .25
+    mag_constant = 10
     
     searches = []
     searchscores = []
     
     for i in range(num_tries):
-        searchdata = Search(star_tab,featset)
+        searchdata = Search(star_tab,featset, mag_constant)
         searches.append(searchdata)
         searchdata.evaluate(mag_constant)
         searchscores.append(searchdata.score)
@@ -45,18 +45,14 @@ def main():
     print('Average mag is:',bestsearch.avgmag)
     print('Score is:',bestsearch.score)
     
-def Search(star_tab, featset):
+def Search(star_tab, featset, mag_constant):
 
-    # Pick random index of star to search around.
-    center = np.random.randint(star_tab.num_stars)
-    #center = 1369
-    print(center)
     # Get subtable of stars near center star.
     search_radius = 20
-    first_search_subtable = star_tab.ClosestStars(center,search_radius)
+    #first_search_subtable = star_tab.ClosestStars(center,search_radius)
 
     # Convert from spherical to cartesian using mollweide projection
-    first_search_subset = first_search_subtable.MollProject()
+    #first_search_subset = first_search_subtable.MollProject()
     
     # Pick 3 random feature points of feature set, get angles
     feat_subindices = np.random.choice(featset.length,3,replace=False)
@@ -64,50 +60,65 @@ def Search(star_tab, featset):
     
     #match = featsub.RandomSearch(star_subset)
     #first_match_subset = ClusterSearch(featsub, first_search_subset)
-    first_match_subset = RealClusterSearch(featsub, first_search_subset)
+    possible_matches = RealClusterSearch(featsub)
     
-    first_match_indices = []
-    for star in first_match_subset.points:
-        first_match_indices.append(star.index)
+    print('Found',len(possible_matches),'possible matches from initial cluster search')
     
-    # Get procrustes transformation, apply to all feature points
-    [R,T,scale] = featset.Procrustes(first_match_subset, selfindices = feat_subindices)
-    featprime = featset.Transform(R,T,scale)
+    clustersearchdata = []
+    clustersearchscores = []
     
-    # Find center of transformed feature points
-    center = np.mean(featprime.matrix,axis=0)
-    #turn center into a set of points so GetClosestStar can take it
-    centerset = SetOfPoints([Point(center)])
-    centerstar_index = first_search_subset.GetClosestStar(centerset)[0]
-    
-    #get new table of stars around center star
-    # twice as big as original search radius
-    second_search_subtable = star_tab.ClosestStars(centerstar_index,search_radius*2)
+    for possible_match in possible_matches:
 
-    #convert from spherical to mollweide projection
-    second_search_subset = second_search_subtable.MollProject()
-    
-    second_match_indices = second_search_subset.LookUp(first_match_indices)
-    
-    second_match_subset = second_search_subset.GetSubset(indices = second_match_indices)
-    
-    [R,T,scale] = featset.Procrustes(second_match_subset, selfindices = feat_subindices)
-    
-    second_featprime = featset.Transform(R,T,scale)
+        possible_match_subtable = SubTable(star_tab, possible_match)
+        possible_match_subset = possible_match_subtable.MollProject()
         
-    final_match_indices = second_search_subset.GetClosestStar(second_featprime)
-    
-    final_match_subset_indices = second_search_subset.LookUp(final_match_indices)
-    
-    final_match = second_search_subset.GetSubset(final_match_subset_indices)    
-    
-    #evaluate final match:
-    [R,T,scale] = featset.Procrustes(final_match, range(final_match.length))
-    final_featprime = featset.Transform(R,T,scale)
+        [R,T,scale] = featset.Procrustes(possible_match_subset, selfindices = feat_subindices)
+        featprime = featset.Transform(R,T,scale)
         
-    searchdata = SearchData(featset, feat_subindices, first_search_subset, first_match_indices, second_search_subset, final_featprime, final_match, final_match_subset_indices)
+        # Find center of transformed feature points
+        center = np.mean(featprime.matrix,axis=0)
+        #turn center into a set of points so GetClosestStar can take it
+        centerset = SetOfPoints([Point(center)])
+        centerstar_index = possible_match_subset.GetClosestStar(centerset)[0]
+        
+        #get new table of stars around center star
+        # twice as big as original search radius
+        second_search_subtable = star_tab.ClosestStars(centerstar_index,search_radius*2)
     
-    return searchdata
+        #convert from spherical to mollweide projection
+        second_search_subset = second_search_subtable.MollProject()
+        
+        second_match_indices = second_search_subset.LookUp(possible_match)
+        
+        second_match_subset = second_search_subset.GetSubset(indices = second_match_indices)
+        
+        [R,T,scale] = featset.Procrustes(second_match_subset, selfindices = feat_subindices)
+        
+        second_featprime = featset.Transform(R,T,scale)
+            
+        final_match_indices = second_search_subset.GetClosestStar(second_featprime)
+        
+        final_match_subset_indices = second_search_subset.LookUp(final_match_indices)
+        
+        final_match = second_search_subset.GetSubset(final_match_subset_indices)    
+        
+        #evaluate final match:
+        [R,T,scale] = featset.Procrustes(final_match, range(final_match.length))
+        final_featprime = featset.Transform(R,T,scale)
+        
+        first_search_subset = None
+            
+        searchdata = SearchData(featset, feat_subindices, first_search_subset, possible_match, second_search_subset, final_featprime, final_match, final_match_subset_indices)
+        
+        clustersearchdata.append(searchdata)
+        searchdata.evaluate(mag_constant)
+        clustersearchscores.append(searchdata.score)
+        
+    bestsearchID = np.argmin(clustersearchscores)
+    
+    bestsearch = clustersearchdata[bestsearchID]
+    
+    return bestsearch
     
 def PlotEverything(searchdata):
     # Plot everything...    
@@ -141,7 +152,7 @@ def PlotEverything(searchdata):
     
     # Plot first search set
     
-    
+    '''
 
     lbound, ubound = GetBounds(searchdata.first_search_subset.matrix)
     
@@ -158,6 +169,7 @@ def PlotEverything(searchdata):
     plt.title('First search space, triangle match in red')
     plt.show()
 
+    '''
 
     # Plot second search set
 
@@ -517,27 +529,24 @@ class StarSet(SetOfPoints):
 
         return StarSet(subset)
         
-def RealClusterSearch(featset, starset):
+def RealClusterSearch(featset):
     
     clustercenters = sio.loadmat('cluster_data/clustercenters.mat')['clustercenter']
     clusterlabels = sio.loadmat('cluster_data/starlabels.mat')['label']
     startrios = sio.loadmat('cluster_data/starlabels.mat')['startrio']
     
-    print(clustercenters[0:10])
-    print(clusterlabels[0:10])
-    print(startrios[0:10])
-    
     feat_angles = np.sort(featset.GetAngles())
-    print('feature:',feat_angles)
     
     tree = spatial.KDTree(clustercenters[:,0:2])
-    bestcluster = tree.query(feat_angles[0:2],k=1)[1]
-
-    possible_matches = startrios[np.argwhere(clusterlabels == bestcluster)[:,0]]
+    bestcluster = tree.query(feat_angles[0:2],k=3)[1]
     
-    print(possible_matches)
+    best1 = startrios[np.argwhere(clusterlabels == bestcluster[0])[:,0]]
+    best2 = startrios[np.argwhere(clusterlabels == bestcluster[1])[:,0]]
+    best3 = startrios[np.argwhere(clusterlabels == bestcluster[2])[:,0]]
+    
+    possible_matches = np.vstack((best1,best2,best3))    
         
-    return
+    return possible_matches
     
     
     
