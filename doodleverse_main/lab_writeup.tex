@@ -151,6 +151,10 @@ A more advanced border-following technique can be used for defining continuous c
 \textbf{For a simple image, say a triangle with a black 1 pixel wide edge on a white background, suggest a reasonable edge detector to find the contour of the image. Why might a simple edge detector be "good enough" for this application?}
 \end{minipage}}
 
+\fbox{\begin{minipage}{40em}
+\textbf{Answer:} An edge detector as simple as [-1 0 1] can be used because we aren't interested in any complicated features that may only be detected by a complex edge detector. 
+\end{minipage}}
+
 Next, in order to narrow down our possible feature points, we can use a corner detector (en.wikipedia.org/wiki/Corner\_detection). Similar to how edge detectors look for large changes in particular directions, corner dectors look for large changes in more than one direction. One particular tool is the Harris Corner Detector.
 
 Corners can be thought of as the intersection of two edges, so the gradient of the image will be large in both directions. In particular, if the function $I(x, y)$ represents the intensity of an image at position $(x, y)$, then we want to maximize $J(u, v) = \sum_{x,y} w(x, y) [I(x+u, y+v) - I(x, y)]^2$, where $w(x, y)$ is the window over which we’re looking at position $(x, y)$ with $u$ and $v$ as the half-widths of the window in the $x$ and $y$ directions. After a Taylor expansion and some algebra, we can express $J$ as 
@@ -189,11 +193,11 @@ The local maxima from this approach yields the corners found in the image. By th
 \\
 \\
 \\
-Finally, in order to turn our $m$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$ where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. The algorithm is defined below. Note that the order does not greatly affect the final result of the feature set and that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
+Finally, in order to turn our $m$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$ where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. The algorithm is defined below. Note that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
 
 \textbf{N-feature selection algorithm}
 \\
-(see Figure \ref{feat_detect}(d) for example of reducing an $m = 12$ point set to an $n = 8$ point set)
+(see Figure \ref{feat_detect}(d) for example of reducing an $m = 18$ point set to an $n = 10$ point set)
 \begin{enumerate}
 	\item 
 	For all points $p_i$ in the set of $m$ features, find normalized error $E_i$ between $p_{i-1}$ and $p_{i+1}$. If $E_i < t_{delete}$, remove $p_i$ from the set of feature points. Else, move on to the next point until all redundant points $j$ have been removed and the new set is composed of $y = m - j$ points.  
@@ -206,13 +210,13 @@ Finally, in order to turn our $m$ feature points into the $n$ feature points tha
 \end{minipage}}
 
 \fbox{\begin{minipage}{40em}
-\textbf{Answer:} Using every point on the border as a feature point gives very little \textit{real} information, and will make it impossible to map between those $N \sim$ 2,000 points and the $M \sim$ 500 stars in our catalog.
+\textbf{Answer:} Using every point on the border as a feature point gives very little \textit{real} information, and will make it impossible to map between those $N \sim$ 2,000 points and the $M \sim$ 3000 stars in our catalog.
 \end{minipage}}
 
 Finally, our approach that will be discussed later depends on picking three important initial feature points, so we must determine a good set of three points of the $n$ features that will give us a good chance at finding a match. This set of points will have well defined angles and large enough interpoint distances such that the three points do not line up with each other for form a line or near-line. Thus, the problem becomes a search for which three adjacent feature points along the contour best meet these requirements. In other words, which point solves the following: $p^* = max_{p_i} [ (||p_i - p_{i-1}||_2 + ||p_i - p_{i+1}||_2) sin(\theta_i) ]$ where $\theta_i$ is the angle spanning $p_{i-1}$ and $p_{i+1}$ going through $p_i$. An example of the key feature points is identified in Figure \ref{feat_detect}(d). 
 
 \begin{figure}
-\center{\includegraphics[scale=0.8]{feature_detection.png}}
+\center{\includegraphics[scale=0.8]{lab_appendix_imgs/duck_features.png}}
 \caption{(a) Original Image, (b) Contour of shape determined by \cite{Suzuki1985}, (c) Basic feature points determined by Harris Corner Detector, (d) Optimized feature points determined by thresholding algorithm with key feature points explicitly identified}
 \label{feat_detect}
 \end{figure}
@@ -414,12 +418,12 @@ You have been supplied: diamond.png (see Figure \ref{diamond}) and a subset of o
   \item
   Generalize the orthogonal procrustes problem so that it will be useful for this case. That is, given the $(2\times 3)$ matrix of feature points $F$ and a  $(2\times 3)$ matrix of star points $S$ (which are not unit norm or centered around the origin), find ideal transformation $T$ such that $||T(F)-S||_F$ is minimized.  Note that it is easy to reduce to the previous case by computing the following:
   $$
-  \hat{F} = \frac{F}{||F||_F} - mean(F)\quad\textrm{ and }\quad\hat{S} = \frac{S}{||S||_F} - mean(S)
+  \hat{F} = \frac{F-mean(F)}{||F||_F} \quad\textrm{ and }\quad\hat{S} = \frac{S}{||S||_F} - mean(S)
   $$
   and solving the problem for $\hat{F}$ and $\hat{S}$ (note: $mean(F)$ is $\begin{bmatrix}
 mean(x \textrm{ coordinates of } F)\\
 mean(y \textrm{ coordinates of } F)
-  \end{bmatrix}$). Modify the previous Procrustes problem code to solve the general Procrustes problem, and use it to map all of your $n$ feature points to the subspace containing the star projections.
+  \end{bmatrix}$ and the subtraction is done columnwise). Modify the previous Procrustes problem code to solve the general Procrustes problem, and use it to map all of your $n$ feature points to the subspace containing the star projections.
   \item
   For the feature points that weren't part of your triangle, find the closest stars to their transformed positions. Repeat this process for your other good matches and evaluate the overall fit of your matches using your cost function from the previous section. Which match is best? If your cost function had a weighted penalizer for the star magnitude, how does changing this weight affect your evaluation?
 \end{enumerate}
@@ -430,5 +434,55 @@ mean(y \textrm{ coordinates of } F)
 \section*{Appendix: Results}
 
 We (the authors) managed to get the whole thing running, tip-to-tail, including a somewhat improved clustering approach (above and beyond what was presented in the lab originally). Basically, by finding the position of the initial triangle in feature-space (determined by its angles), we can associate it with one of several ``clusters" of triangles formed by stars in our catalog. This matching allows a smaller sub-sample of stars, that we \textit{can} exhaustively search for a good overall match.
+
+Below we have provided example images and associated star mappings for various test shapes. Note that magnitude 3 brightness is visible from most populated areas (not city centers), and magnitude 4 brightness is visible from the suburbs (and cooperating Madison nights). 
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/duck_features.png}}
+\caption{(a) Original Image, (b) Contour, (c) Harris Corner Detector features, (d) Optimized feature points to be found in stars}
+\label{duck}
+\end{figure}
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/duck_starset.png}}
+\caption{Starset found for features of Figure \ref{duck}, avg Magnitude $\approx$ 3.2. }
+\label{duckstar}
+\end{figure}
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/tri_features.png}}
+\caption{(a) Original Image, (b) Contour, (c) Harris Corner Detector features, (d) Optimized feature points to be found in stars}
+\label{tri}
+\end{figure}
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/tri_starset.png}}
+\caption{Starset found for features of Figure \ref{tri}, avg Magnitude $\approx$ 2.8. }
+\label{tristar}
+\end{figure}
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/sword_features.png}}
+\caption{(a) Original Image, (b) Contour, (c) Harris Corner Detector features, (d) Optimized feature points to be found in stars}
+\label{sword}
+\end{figure}
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/sword_starset.png}}
+\caption{Starset found for features of Figure \ref{sword}, avg Magnitude $\approx$ 3.4. }
+\label{duck}
+\end{figure}
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/mj_features.png}}
+\caption{(a) Original Image, (b) Contour, (c) Harris Corner Detector features, (d) Optimized feature points to be found in stars}
+\label{mj}
+\end{figure}
+
+\begin{figure}[!h]
+\center{\includegraphics[scale=0.5]{lab_appendix_imgs/mj_starset.png}}
+\caption{Starset found for features of Figure \ref{mj}, avg Magnitude $\approx$ 3.2}
+\label{duck}
+\end{figure}
 
 \end{document}
