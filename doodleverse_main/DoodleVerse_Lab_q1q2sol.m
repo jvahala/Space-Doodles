@@ -1,5 +1,5 @@
-%% FExtract_sol.m 
-% DoodleVerse Project Solutions 
+%% DoodleVerse_Lab_q1q2sol.m 
+% DoodleVerse Project Solutions, Lab questions 1-2
 
 clear; 
 clc;
@@ -13,7 +13,7 @@ simg = size(imgG);
 % pad with white space all around to do convolution
 imgGpad = padarray(imgG,[1 1], 255);
 
-%define simple edge detector filter
+%define simple edge detector filter, sobel operator is also a good choice
 filter = [-1 0 1];
 
 % do convolution with edge detector filter
