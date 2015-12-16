@@ -98,6 +98,8 @@ showstringspaces=false
 
 \DeclareMathOperator*{\argmin}{arg\,min} %argmin
 
+\DeclareMathOperator*{\argmax}{arg\,max} %argmax
+
 \title{
 \normalfont \normalsize
 \huge The DoodleVerse \\ % The assignment title
@@ -317,14 +319,21 @@ If we think of every set of 3 points in our search space as a specified by their
 This is very valuable when searching over our entire search space: it effectively finds all possible matches for a given triangle. 
 
 \fbox{\begin{minipage}{40em}
-\textbf{Consider this as the clustering problem $X = DW$. What do $X,D,W$ look like? Our search set contains 79 stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
+\textbf{Consider this as the clustering problem $X = DW$. What do $X,D,W$ look like? Our search set contains 79 stars. If W is $k\times n$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
 \end{minipage}
 }
+
+\fbox{\begin{minipage}{40em}
+\textbf{Answer: }$X$ is a $3\times n$ matrix where each column contains in the interior angles of each triangle. $D$ is $3\times k$ and each row contains the coordinates of the cluster centers, and there are $k$ clusters. $n$ would be 79 choose 3 = 79,079. $W$ is $k\times n$ and for each column contains all 0s except a 1 to indicate that triangle is in that cluster.  Choosing larger values of $k$ would increase the computation time and decrease the average number of triangles per cluster.
+\end{minipage}}
 
 The set of all possible triangles formed by our set of stars is far too large to use this clustering approach directly. Fortunately, by only considering a subset of brighter stars and limiting the size of our triangles, we can reduce the set of triangles to about $40,000$, which we can then cluster into about $1200$ clusters so that each cluster contains on average $30-40$ triangles.  This computation is time-consuming but we only need to do it once - not for each search.
 
 \fbox{\begin{minipage}{40em}\textbf{An alternative to this clustering approach would be to just find the $k$ closest triangles to our target triangle, where $k$ is determined ahead of time.  What are the advantages of the clustering approach?
 }
+\end{minipage}}
+
+\fbox{\begin{minipage}{40em}\textbf{Answer: }If there are many good matches and we choose a small $k$, we end up ignoring many of the good matches. Conversely, if there are only a few small matches, choosing a large $k$ makes us consider bad matches. Clustering effectively selects a good value of $k$ for us.
 \end{minipage}}
 
 Unfortunately, this approach doesn't scale well when our feature set is more than 3 points (most notably, the search space becomes way too large). However, matching 3 feature points to 3 stars does uniquely determine a transformation from the $(x,y)-$plane that the features lie in to the $(x,y)-$plane that the stars lie in. So rather than finding a match for the remaining points using this clustering approach, we can simply check to see if there are stars in the appropriate places to form the rest of our shape. To do this, we need to find the transformation from the $(x,y)-$coordinates of our features to the $(x,y)-$coordinates of our stars. To find this transformation, we must solve what is called the Procrustes problem.
@@ -350,15 +359,15 @@ Hint 2: If you are really stuck, consult \cite{Everson1997}.
 \textbf{Answer:} \\
 By the property of the trace, 
 
-$$ T^* = argmin_T ||T F - S||_F^2 $$
+$$ T^* = \argmin_T ||T F - S||_F^2 $$
 
-$$ T^* = argmin_T~tr((T F-S)(T F-S))^T$$
+$$ T^* = \argmin_T~tr((T F-S)(T F-S)^T)$$
 
-$$ T^* = argmax_T~tr(S F^T T^T) $$
+$$ T^* = \argmax_T~tr(S F^T T^T) $$
 
-$$ T^* = argmax_T~tr(U \Sigma V^T T^T) $$
+$$ T^* = \argmax_T~tr(U \Sigma V^T T^T) $$
 
-$$ T^* = argmax_T~tr(U^T T V \Sigma) $$
+$$ T^* = \argmax_T~tr(U^T T V \Sigma) $$
 
 $U^T T V$ is orthogonal, so $tr(U^T T V \Sigma) \le tr(\Sigma)$. When $T=U V^T$, $U^T T V = I$, and so $tr(U^T T V \Sigma) = tr(\Sigma)$. So $T^*=U V^T$ is a minimizer.
 
@@ -418,7 +427,7 @@ You have been supplied: diamond.png (see Figure \ref{diamond}) and a subset of o
   \item
   Generalize the orthogonal procrustes problem so that it will be useful for this case. That is, given the $(2\times 3)$ matrix of feature points $F$ and a  $(2\times 3)$ matrix of star points $S$ (which are not unit norm or centered around the origin), find ideal transformation $T$ such that $||T(F)-S||_F$ is minimized.  Note that it is easy to reduce to the previous case by computing the following:
   $$
-  \hat{F} = \frac{F-mean(F)}{||F||_F} \quad\textrm{ and }\quad\hat{S} = \frac{S}{||S||_F} - mean(S)
+  \hat{F} = \frac{F-mean(F)}{||F||_F} \quad\textrm{ and }\quad\hat{S} = \frac{S-mean(S)}{||S||_F}
   $$
   and solving the problem for $\hat{F}$ and $\hat{S}$ (note: $mean(F)$ is $\begin{bmatrix}
 mean(x \textrm{ coordinates of } F)\\
@@ -470,7 +479,7 @@ Below we have provided example images and associated star mappings for various t
 \begin{figure}[!h]
 \center{\includegraphics[scale=0.5]{lab_appendix_imgs/sword_starset.png}}
 \caption{Starset found for features of Figure \ref{sword}, avg Magnitude $\approx$ 3.4. }
-\label{duck}
+\label{swordss}
 \end{figure}
 
 \begin{figure}[!h]
@@ -482,7 +491,7 @@ Below we have provided example images and associated star mappings for various t
 \begin{figure}[!h]
 \center{\includegraphics[scale=0.5]{lab_appendix_imgs/mj_starset.png}}
 \caption{Starset found for features of Figure \ref{mj}, avg Magnitude $\approx$ 3.2}
-\label{duck}
+\label{mjss}
 \end{figure}
 
 \end{document}
