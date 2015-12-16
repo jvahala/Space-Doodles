@@ -7,124 +7,109 @@ from scipy import spatial
 import scipy.io as sio
 
 def main():
+    plt.close("all")
     
-    plt.close("all")    
-    
+    # Load star data.
     star_tab = StarTable()
 
+    # Specify feature points.
     featdata = [[290,116],[398,203],[290,288],[182,202]]
     
+    # Turn feature points into "SetOfPoints" object
     featpoints = []
-    
     for data in featdata:
         featpoints.append(Point(data))
-    
     featset = SetOfPoints()
-    
     featset.append(featpoints)
-
-    num_tries = 1
     
+    # Specify weight on star magnitude for cost function
+    # <~.5 mostly care about fit
+    # >~3 mostly care about magnitude
     mag_constant = 10
     
-    searches = []
-    searchscores = []
-    
-    for i in range(num_tries):
-        searchdata = Search(star_tab,featset, mag_constant)
-        searches.append(searchdata)
-        searchdata.evaluate(mag_constant)
-        searchscores.append(searchdata.score)
-        
-    bestsearchID = np.argmin(searchscores)
-    
-    bestsearch = searches[bestsearchID]
+    searchdata = Search(star_tab,featset, mag_constant)
             
-    PlotEverything(bestsearch)
+    PlotEverything(searchdata)
     
-    print('Average mag is:',bestsearch.avgmag)
-    print('Score is:',bestsearch.score)
+    print('Average mag is:',searchdata.avgmag)
+    print('Score is:',searchdata.score)
     
-def Search(star_tab, featset, mag_constant):
+def Search(star_tab, featset, best_point=None, mag_constant=1):
+    '''
+    Main search algorithm.
+    '''
 
-    # Get subtable of stars near center star.
-    search_radius = 20
-    #first_search_subtable = star_tab.ClosestStars(center,search_radius)
-
-    # Convert from spherical to cartesian using mollweide projection
-    #first_search_subset = first_search_subtable.MollProject()
-    
-    # Pick 3 random feature points of feature set, get angles
-    feat_subindices = np.random.choice(featset.length,3,replace=False)
+    # Pick 3 feature points for initial triangle to search for.
+    if best_point is None:
+        feat_subindices = np.random.choice(featset.length,3,replace=False)
+    else:    
+        feat_subindices = [best_point-1, best_point, best_point+1]
     featsub = featset.GetSubset(indices = feat_subindices)
     
-    #match = featsub.RandomSearch(star_subset)
-    #first_match_subset = ClusterSearch(featsub, first_search_subset)
-    possible_matches = RealClusterSearch(featsub)
+    # Use cluster search to get a list of possible star trio matches.
+    possible_matches = ClusterSearch(featsub)
     
     print('Found',len(possible_matches),'possible matches from initial cluster search')
     
+    # Go through each match and find best one.
     clustersearchdata = []
-    clustersearchscores = []
-    
+    clustersearchscores = []    
     for possible_match in possible_matches:
 
+        # Turn star trio into "SubTable" object and project onto xy-plane.
         possible_match_subtable = SubTable(star_tab, possible_match)
         possible_match_subset = possible_match_subtable.MollProject()
         
+        # Get transformation to best fit feature points.
         [R,T,scale] = featset.Procrustes(possible_match_subset, selfindices = feat_subindices)
         featprime = featset.Transform(R,T,scale)
         
-        # Find center of transformed feature points
+        # Get subset of stars centered around the center of the transformed
+        # feature points, project onto xy-plane.
         center = np.mean(featprime.matrix,axis=0)
-        #turn center into a set of points so GetClosestStar can take it
         centerset = SetOfPoints([Point(center)])
         centerstar_index = possible_match_subset.GetClosestStar(centerset)[0]
-        
-        #get new table of stars around center star
-        # twice as big as original search radius
-        second_search_subtable = star_tab.ClosestStars(centerstar_index,search_radius*2)
-    
-        #convert from spherical to mollweide projection
+        second_search_subtable = star_tab.ClosestStars(centerstar_index,40)
         second_search_subset = second_search_subtable.MollProject()
         
+        # Gets indices of the possible match stars for the new subset.
         second_match_indices = second_search_subset.LookUp(possible_match)
-        
         second_match_subset = second_search_subset.GetSubset(indices = second_match_indices)
         
+        # Gets transformation to best fit feature points.
         [R,T,scale] = featset.Procrustes(second_match_subset, selfindices = feat_subindices)
-        
         second_featprime = featset.Transform(R,T,scale)
-            
+        
+        # Gets closest stars to all of the points in transformed set
+        # for final match, turn into "SetOfPoints" object.
         final_match_indices = second_search_subset.GetClosestStar(second_featprime)
-        
         final_match_subset_indices = second_search_subset.LookUp(final_match_indices)
-        
         final_match = second_search_subset.GetSubset(final_match_subset_indices)    
         
-        #evaluate final match:
+        # Evaluate final match:
+        # Get transformation to best fit all feature points to
+        # all stars in match
         [R,T,scale] = featset.Procrustes(final_match, range(final_match.length))
         final_featprime = featset.Transform(R,T,scale)
         
-        first_search_subset = None
-            
-        searchdata = SearchData(featset, feat_subindices, first_search_subset, possible_match, second_search_subset, final_featprime, final_match, final_match_subset_indices)
-        
+        # Store all data as "SearchData" object to evaluate/plot later
+        searchdata = SearchData(featset, feat_subindices, possible_match, second_search_subset, final_featprime, final_match, final_match_subset_indices)
         clustersearchdata.append(searchdata)
         searchdata.evaluate(mag_constant)
         clustersearchscores.append(searchdata.score)
         
+    # Get index of search data with lowest score
     bestsearchID = np.argmin(clustersearchscores)
     
-    bestsearch = clustersearchdata[bestsearchID]
-    
-    return bestsearch
+    # Return corresponding search data 
+    return clustersearchdata[bestsearchID]
     
 def PlotEverything(searchdata):
-    # Plot everything...    
+    '''
+    A bunch of plots displaying search results.
+    '''
     
     # Original feature points connected
-    
     featsetfull = np.vstack((searchdata.featset.matrix,searchdata.featset.matrix[0]))
     lbound, ubound = GetBounds(searchdata.featset.matrix)        
     plt.figure()
@@ -136,9 +121,7 @@ def PlotEverything(searchdata):
     
 
     # Original feature points
-    
     lbound, ubound = GetBounds(searchdata.featset.matrix)    
-    
     plt.figure()
     for i in range(searchdata.featset.length):
         if i in searchdata.feat_subindices:
@@ -149,32 +132,9 @@ def PlotEverything(searchdata):
     plt.ylim([lbound,ubound])
     plt.title('Original Feature Points, triangle in red')
     plt.show()
-    
-    # Plot first search set
-    
-    '''
-
-    lbound, ubound = GetBounds(searchdata.first_search_subset.matrix)
-    
-    matches = searchdata.first_search_subset.LookUp(searchdata.first_match_indices)
-
-    plt.figure()
-    for i in range(searchdata.first_search_subset.length):
-        if i in matches:
-            plt.scatter(searchdata.first_search_subset.matrix[i,0],searchdata.first_search_subset.matrix[i,1],s=50,c='r',alpha = 1-searchdata.first_search_subset.mags[i])
-        else:
-            plt.scatter(searchdata.first_search_subset.matrix[i,0],searchdata.first_search_subset.matrix[i,1],c=[0,0,0],alpha = 1-searchdata.first_search_subset.mags[i])
-    plt.xlim([lbound,ubound])
-    plt.ylim([lbound,ubound])
-    plt.title('First search space, triangle match in red')
-    plt.show()
-
-    '''
 
     # Plot second search set
-
     lbound, ubound = GetBounds(searchdata.second_search_subset.matrix)
-
     plt.figure()
     for i in range(searchdata.second_search_subset.length):
         if i in searchdata.final_match_subset_indices:
@@ -193,9 +153,7 @@ def PlotEverything(searchdata):
     plt.show()
     
     # Final match vs original points
-    
     lbound, ubound = GetBounds(np.vstack((searchdata.final_featprime.matrix,searchdata.final_match.matrix)))
-    
     plt.figure()
     for i in range(searchdata.final_featprime.length):
         plt.scatter(searchdata.final_featprime.matrix[i,0],searchdata.final_featprime.matrix[i,1],s=50,c='b')
@@ -205,9 +163,7 @@ def PlotEverything(searchdata):
     plt.title('Final match stars in Red, Original Feature Points in Blue')
     plt.show()
     
-    
-    # final match connected
-    
+    # Final match connected
     finalmatchfull = np.vstack((searchdata.final_match.matrix,searchdata.final_match.matrix[0]))
     lbound, ubound = GetBounds(searchdata.final_match.matrix)        
     plt.figure()
@@ -216,10 +172,11 @@ def PlotEverything(searchdata):
     plt.ylim([lbound,ubound])
     plt.title('Match Stars Connected')
     plt.show()
-    
-    
 
 def GetBounds(data):
+    '''
+    A helper function for getting bounds for plots
+    '''
     
     lbound = min(min(data[:,0]),min(data[:,1]))
     ubound = max(max(data[:,0]),max(data[:,1]))
@@ -228,10 +185,12 @@ def GetBounds(data):
     
     
 class SearchData:
-    def __init__(self, featset, feat_subindices, first_search_subset, first_match_indices, second_search_subset, final_featprime, final_match, final_match_subset_indices):
+    '''
+    A class for storing search data
+    '''
+    def __init__(self, featset, feat_subindices, first_match_indices, second_search_subset, final_featprime, final_match, final_match_subset_indices):
         self.featset = featset
         self.feat_subindices = feat_subindices
-        self.first_search_subset = first_search_subset
         self.first_match_indices = first_match_indices
         self.second_search_subset = second_search_subset
         self.final_featprime = final_featprime
@@ -239,9 +198,12 @@ class SearchData:
         self.final_match_subset_indices = final_match_subset_indices
 
     def evaluate(self, mag_constant = .05):
-    
-        score = 0
-        
+        '''
+        Evaluates the cost function for this SearchData. Adds up:
+        Errors and a weighted L1 norm of star magnitudes. Smaller is better!
+        Also computes average star magnitude.
+        '''
+        score = 0 
         for i in range(self.final_featprime.length):
             score += np.linalg.norm(self.final_featprime.points[i].xy-self.final_match.points[i].xy) + mag_constant*self.final_match.points[i].mag
         
@@ -254,33 +216,31 @@ class SearchData:
 
 
 class StarTable:
-    def __init__(self, file = 'hyg_catalog.fits', mag_cutoff = None):
+    '''
+    Main star data.
+    '''
+    def __init__(self, file = 'hyg_catalog.fits'):
         self.tab = table.Table.read(file, format = 'fits')
         
-        # assign original index to each star
+        # Assign index to each star.
         self.tab['Index'] = np.arange(len(self.tab))
-        
-        if mag_cutoff is not None:            
-            for row in range(len(self.tab)):
-                if self.tab['Mag'][row] > mag_cutoff:
-                    self.tab.remove_row(row)
 
-        # convert hours to degrees
+        # Convert hours to degrees.
         self.tab['RA'] = self.tab['RA']*15
+        
+        # Get number of stars.
         self.num_stars = len(self.tab)
         
-        # normalize magnitudes so they are 0-1 exclusive
+        # Normalize magnitudes so they are 0-1 exclusive
         maxmag = max(self.tab['Mag'])
         minmag = min(self.tab['Mag'])
-
+        self.tab['Mag'] = (self.tab['Mag']-minmag)/(maxmag-minmag+.01)+10**-6
         print('Normalized magnitudes')
         print('Magnitude 3 corresponds to:',(3-minmag)/(maxmag-minmag+.01)+10**-6)
         
-        self.tab['Mag'] = (self.tab['Mag']-minmag)/(maxmag-minmag+.01)+10**-6
-        
     def ClosestStars(self, center_index, radius):
         """
-        Returns indices of stars that is
+        Returns "SubTable" object of stars that is
         within radius of the center_index star
         """
         
@@ -292,31 +252,11 @@ class StarTable:
         indices = spherematch(tRA, tDec, cRA, cDec, maxmatch = 0, matchlength = radius)[0]
         
         return SubTable(self,self.tab['Index'][indices])
-        
-    def ClosestStarsPoint(self, cRA, cDec, radius):
-        """
-        Returns indices of stars that is
-        within radius of the center_index star
-        """
-        
-        tRA = self.tab['RA']    
-        tDec = self.tab['Dec']
-        
-        indices = spherematch(tRA, tDec, cRA, cDec, maxmatch = 0, matchlength = radius)[0]
-        
-        return SubTable(self,self.tab['Index'][indices])
-        
-    def DeleteDimStars(self, number_to_keep):
-        
-        startab_sorted = self.tab[self.tab['Mag'].argsort()]
-        
-        print(startab_sorted)
-    
-        #self.tab = startab_sorted[0:number_to_keep]
 
     def LookUp(self,indices):
         '''
-        Given original index, finds index in this table
+        Given original index, finds index in this table.
+        (i.e. if you have a subtable and need original table index)
         '''
         output = []
         
@@ -326,6 +266,9 @@ class StarTable:
         return output
         
 class SubTable(StarTable):
+    """
+    An object for storing a subtable of stars.
+    """
     def __init__(self,supertable,indices):
         self.tab = supertable.tab[indices]
         self.indices = indices
@@ -334,57 +277,52 @@ class SubTable(StarTable):
 
     def MollProject(self, center_index = 0):
         """
-        Returns set of xy coordinates centered at center_index?
-        Implements conversion given at:
-        https://en.wikipedia.org/wiki/Mollweide_projection#Mathematical_formulation
+        Returns a "StarSet" object that contains stars with xy-coordinates
+        for all stars in this subtable centered at star with center_index
+        (defaults to first star in sub_table)
         """
     
         c = self.tab['RA'][center_index]
         
+        # If close to edges, shift everything so they are not.
         if c-90<0 or c+90>360:
             self.tab['RA'] = (self.tab['RA']+ 180)%360
     
+        # Get center star spherical coordinates.
         c_ra = np.deg2rad(self.tab['RA'][center_index])
         c_dec = np.deg2rad(self.tab['Dec'][center_index])
-        
-        #c_ra = (c_ra - np.pi)
 
-        #initialize outputs        
         xy = np.zeros((self.num_stars,2))     
         stars = []
         
+        # Go through each star and project
         for i in range(self.num_stars):
-            #convert hours/degrees to radians
+            # Get spherical coordinates, convert hours/degrees to radians, 
+            # shift dec to align with center.
             ra = np.deg2rad(self.tab['RA'][i])
             dec = np.deg2rad(self.tab['Dec'][i]) - c_dec
             
-            #ra = (ra + np.pi)
-            #dec = (dec + np.pi)%(np.pi)-np.pi/2
-            
-            #longitude = RA = lambda ?
-            #latitude = dec = phi ?
-            
+            # Mollweide projection algorithm...
             t_0 = dec
             epsilon = 10**-6
-            
-            #iterate to find theta
             error = 1+epsilon        
             while error > epsilon:
                 t_1 = t_0 - (2*t_0+np.sin(2*t_0)-np.pi*np.sin(dec))/(2+2*np.cos(2*t_0))
                 error = np.abs(t_1 - t_0)
                 t_0 = t_1
-            
             xy[i,0] = 2*np.sqrt(2)*(ra-c_ra)*np.cos(t_0)/np.pi
             xy[i,1] = np.sqrt(2)*np.sin(t_0)
             
-            #create star object with parameters
-            #print(subtab[i])
+            # Create "Star" object with parameters, append to output.
             stars.append(Star(xy=xy[i], mag=self.tab['Mag'][i], index = self.indices[i]))
 
-        #return a starset of stars in starsxy
+        # Return a "StarSet" object of stars
         return StarSet(stars)
         
 class SetOfPoints:
+    '''
+    Object for storing feature points and stars.
+    '''
     def __init__(self, points = []):
         self.points = []
         self.append(points)
@@ -403,7 +341,7 @@ class SetOfPoints:
     
     def GetAngles(self, verts = [0,1,2]):
         '''
-        get angles between vertices specified by
+        Get angles between vertices specified by
         verts (defaults to first three points)
         '''
         d = np.zeros((3))
@@ -421,64 +359,62 @@ class SetOfPoints:
         
         return a    
         
-    def GetSubset(self, indices = None):
-        if indices is None:
-            subset = np.random.choice(bright_points, subsize, replace=False)
-        else:
-            subset = [self.points[i] for i in indices]
-            
+    def GetSubset(self, indices):
+        '''
+        Returns a "SetOfPoints" object containing points specified by indices.
+        '''        
+        subset = [self.points[i] for i in indices]
         return SetOfPoints(points = subset)
-            
             
     def Procrustes(self, target, selfindices = [0,1,2]):
         '''
-        Finds the matrix that ideally maps points of self to points of target
-        For self, chooses points indexed by "selfindices" (defaults
-        to first 3 points)
+        Finds the transformation that best fits points of self (specified by
+        self indices) to points of target.
+        Returns [R,T,scale] where:
+        R is rotation matrix
+        T is translation matrix
+        scale is scaling factor
         '''
         
         A = self.matrix[selfindices,0:2]
         B = target.matrix[:,0:2]
         
-        #get mean and center matrices around origin
+        # Get mean and center matrices around origin
         meanA = A.mean(0)
         meanB = B.mean(0)
         A0 = A-meanA
         B0 = B-meanB
         
-        #get frobenius norms
+        # Get Frobenius norms and normalize
         Anorm = np.sqrt(np.sum(A0**2))
         Bnorm = np.sqrt(np.sum(B0**2))
-
         A0 /= Anorm
         B0 /= Bnorm
 
+        # Get Procrustes rotation matrix.
         M = np.dot(B0.T,A0)
-        
         [U,s,VT] = np.linalg.svd(M)
         V = VT.T
-        
-        #get optimal scaling
-        scale = Bnorm/Anorm
-        
         R = np.dot(V,U.T)
         
+        # Get scaling factor
+        scale = Bnorm/Anorm
+
+        # Get translation        
         T = meanB - scale*np.dot(meanA,R)
         
         return [R, T, scale]
         
     def Transform(self, R, T, scale):
         '''
-        Outputs coordinates in matrix form after applying the given
-        procrustes transformation
+        Outputs "SetOfPoints" object after
+        applying given Procrustes transformation.
         '''
         transformed = scale*np.dot(self.matrix,R)+T
         output = []
         for point in transformed:
             output.append(Point(point))
-        
         return SetOfPoints(output)
-        
         
 class Point:
     def __init__(self, xy=None):
@@ -510,25 +446,24 @@ class StarSet(SetOfPoints):
             xys.append(star.xy)
             mags.append(star.mag)
         self.indices = np.array(indices)
-        test = self.indices
         self.matrix = np.array(xys)
         self.mags = np.array(mags)
         self.length = self.matrix.shape[0]
         
     def LookUp(self,indices):
         '''
-        Given a set of original startable indices, gets this indices within this starset
+        Given a set of original startable indices,
+        gets this indices within this starset.
         '''
-        output = []
-        
+        output = []        
         for starindex in indices:
-            output.append(np.where(self.indices == starindex)[0][0])
-        
+            output.append(np.where(self.indices == starindex)[0][0])        
         return output
         
     def GetClosestStar(self, setofpoints):
         '''
-        Returns starset index of closest star to point.
+        Does a tree search to get a list of original starset indices
+        that are closest to each point in setofpoints.
         '''
         tree = spatial.KDTree(self.matrix)
         closeststars = tree.query(setofpoints.matrix)[1]
@@ -539,91 +474,34 @@ class StarSet(SetOfPoints):
         
     def GetSubset(self, indices = None):
         subset = [self.points[i] for i in indices]
-
         return StarSet(subset)
         
-def RealClusterSearch(featset):
+def ClusterSearch(featset):
+    '''
+    Uses cluster data to find trios of stars that are possible matches for
+    triangle formed by points in featset. Returns an array of lists of 3.
+    '''
     
+    # Load cluster data.
     clustercenters = sio.loadmat('cluster_data/clustercenters.mat')['clustercenter']
     clusterlabels = sio.loadmat('cluster_data/starlabels.mat')['label']
     startrios = sio.loadmat('cluster_data/starlabels.mat')['startrio']
     
+    # Get and sort feature angles.
     feat_angles = np.sort(featset.GetAngles())
     
+    # Do a tree search to find 3 closest cluster centers to feat_angles.
     tree = spatial.KDTree(clustercenters[:,0:2])
     bestcluster = tree.query(feat_angles[0:2],k=3)[1]
     
+    # Get all trios of stars that are in the 3 clusters.
     best1 = startrios[np.argwhere(clusterlabels == bestcluster[0])[:,0]]
     best2 = startrios[np.argwhere(clusterlabels == bestcluster[1])[:,0]]
     best3 = startrios[np.argwhere(clusterlabels == bestcluster[2])[:,0]]
     
+    # Stack into one list and return.
     possible_matches = np.vstack((best1,best2,best3))    
-        
     return possible_matches
-    
-    
-    
-def ClusterSearch(featset, starset):
-    """
-    Does a smarter search than RandomSearch? Finds a good BRIGHT match
-    """
-    
-    # Get angles formed by first 3 points in self
-    feat_angles = np.sort(featset.GetAngles())
-    print('feature:',feat_angles)
-    
-    # Sort starset by its brightness (add first column to remember index)
-    mat = starset.matrix
-    n = starset.length
-    stars = np.hstack((np.arange(n).reshape(n,1),mat,starset.mags.reshape(n,1)))
-    s_sorted = stars[stars[:,3].argsort()]
-    
-    #print(s_sorted)
-
-    # Set error tolerance, initialize counter
-    epsilon = .01
-    num_tries = 0
-    brk = False
-    best_diff_so_far = epsilon+1
-    
-    # iterate through all sets of 3 stars in order of brightness
-    # until a match is found
-    for i in range(2,n):
-        for j in range(1,i):
-            for k in range(j):
-                v = [int(s_sorted[i,0]),int(s_sorted[j,0]),int(s_sorted[k,0])]
-                a = np.sort(starset.GetAngles(verts = v))
-                num_tries += 1
-                #print(num_tries)
-                if num_tries%500 == 0:
-                    epsilon *= 1.1
-                    if best_diff_so_far < epsilon:
-                        a = best_so_far
-                        v = best_v_so_far
-                        brk = True
-                        break
-                diff = np.linalg.norm(a - feat_angles)
-                if diff < epsilon:
-                    brk = True
-                    break
-                if diff < best_diff_so_far:
-                    best_so_far = a
-                    best_diff_so_far = diff
-                    best_v_so_far = v
-            if brk is True:
-                break
-        if brk is True:
-            break
-            
-    print('feat', feat_angles)
-    print('match',a)
-    print('verts',np.sort(starset.GetAngles(verts = v)))
-    print('mags',starset.mags[v])
-    print('done')
-            
-    # Return starset object of matching points.
-    return starset.GetSubset(indices = v)
-
             
     
 if __name__ == '__main__': main()

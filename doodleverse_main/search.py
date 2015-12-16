@@ -273,7 +273,7 @@ class StarTable:
         """
         
         tRA = self.tab['RA']    
-        tDec = self.tab['Dec']tab
+        tDec = self.tab['Dec']
         cRA = np.array([self.tab['RA'][center_index]])
         cDec = np.array([self.tab['Dec'][center_index]])
         

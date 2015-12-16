@@ -11,11 +11,13 @@ def main():
     
     plt.close("all")    
     
-    [feature_points, bestpoint] = get_features('shape1.png')
+    [feature_points, bestpoint] = get_features('mj.png')
+    
+    bestpoint = int(bestpoint)
     
     print(feature_points,bestpoint)
     
-    star_tab = search.StarTable()
+    star_tab = clustersearch.StarTable()
 
     featpoints = []
     
@@ -26,26 +28,15 @@ def main():
     
     featset.append(featpoints)
     
-    num_tries = 1
     mag_constant = 0.5
     
-    searches = []
-    searchscores = []
 
-    for i in range(num_tries):
-        searchdata = clustersearch.Search(star_tab,featset, mag_constant)
-        searches.append(searchdata)
-        searchdata.evaluate(mag_constant)
-        searchscores.append(searchdata.score)
-        
-    bestsearchID = np.argmin(searchscores)
-    
-    bestsearch = searches[bestsearchID]
+    searchdata = clustersearch.Search(star_tab,featset, bestpoint, mag_constant)
             
-    clustersearch.PlotEverything(bestsearch)
+    clustersearch.PlotEverything(searchdata)
     
-    print('Average mag is:',bestsearch.avgmag)
-    print('Score is:',bestsearch.score)
+    print('Average mag is:',searchdata.avgmag)
+    print('Score is:',searchdata.score)
 
 def get_features(image_name):    
     
