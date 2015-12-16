@@ -221,15 +221,17 @@ Finally, our approach that will be discussed later depends on picking three impo
 \subsection{Cartesian and Spherical Coordinates: The Mollweide Projection}
 Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first three stars of our raw data set:
 \begin{python}
-	   RA         Dec        Mag  
-	float64     float64    float64
-	---------- ------------ -------
-	0.02662528 -77.06529438    4.78
-	0.03039927  -3.02747891    5.13
-	0.03266433  -6.01397169    4.37
+     RA          Dec           Mag       Index
+  float64      float64       float64     int32
+------------ ------------ -------------- -----
+292.66593315  -2.78886135 0.930936251799  2353
+ 294.1803189  -1.28655047 0.834533374101  2367
+ 294.4469016  -4.64750966 0.991367906475  2370
+
 \end{python}
 The "RA" or "right ascension" measures the distance from a central meridian and ranges from $0$ hours to $24$ hours (which corresponds to $0\si{\degree}-360\si{\degree}$). To convert to degrees we need to multiply this column by $15$.
 The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$. The "Mag" or "magnitude" corresponds to the stars brightness. The scale is reversed: \textit{lower numbers correspond to brighter stars}.
+Index refers to a unique ID assigned to each star in our starset.
 
 The Mollweide (or homolographic) projection is a very useful projection for plotting objects in the night’s sky. Unlike most maps we’re used to seeing of the Earth’s surface, the Mollweide projection is ``equal-area”, meaning that the area enclosed within a given, closed curve is the same as the area enclosed within the Mollweide projection of that curve. Additionally, locally, the projection is flat, meaning that the un-projected data will look the same as the projected data if we zoom in far enough (realistically, this happens at scales of a few degrees). The Mollweide projection (and its cousin, the Hammer projection) have been used for about 30 years by the Cosmic Microwave Background physics community, who have used it to represent the temperature of the universe’s nearly-constant radiation field over the whole extent of the sky.  See Figure \ref{moll} for an example Mollweide projection.
 
@@ -297,6 +299,7 @@ You should get something like this:
 \end{figure}
 
 \subsection{Preliminary Search: A Clustering Approach}
+
 We wish to determine if there is possible good match for our feature points in the set obtained from the previous section.  Since we are only trying to match the shape and not the scale of our feature points, one approach is to find a set of stars that forms the same set of interior angles.
 
 In essence, this is a clustering problem. First, let's simplify the problem by considering the case where our feature points consist of just 3 points: $(p_1,p_2,p_3)$. The shape of these 3 points is uniquely determined by their interior angles (i.e. the angles of the triangle they form), call them $(a_1,a_2,a_3)$. Finding these angles is a simple geometric formula such that the angle formed by $p_1, p_2, p_3$ with a vertex at $p_1$ is given by:
@@ -304,46 +307,24 @@ In essence, this is a clustering problem. First, let's simplify the problem by c
 $$\arccos\left(\frac{P_{12}^TP_{13}}{||P_{12}||||P_{13}||}\right)$$
 
 Where $P_{ij}$ is the vector formed by $(p_i - p_j)$.
-The following script computes and the angles as we need them:
-
-\begin{python}
-def GetAngles(verts):
-    '''
-    Gets angles specified by points in verts,
-    returns as a sorted array in radians.
-    '''
-    
-    d = np.zeros((3))
-    ab = verts[0]-verts[1]
-    ac = verts[0]-verts[2]
-    cb = verts[1]-verts[2]
-    d[0] = np.linalg.norm(ab)
-    d[1] = np.linalg.norm(ac)
-    d[2] = np.linalg.norm(cb)
-    
-    a = np.zeros((3))
-    a[0] = np.arccos(np.dot(ab,ac)/(d[0]*d[1]))
-    a[1] = np.arccos(np.dot(ab,cb)/(d[0]*d[2]))
-    a[2] = np.arccos(np.dot(ac,cb)/(d[1]*d[2]))
-    
-    return np.sort(a)
-\end{python}
 
 If we think of every set of 3 points in our search space as a specified by their interior angles (sorting the angles in ascending order uniquely determines the set's "angle representation"), we are basically looking for the 3-point sets that lie in the same cluster as our feature points. This cluster would be our "possible match" cluster.
 
+This is very valuable when searching over our entire search space: it effectively finds all possible matches for a given triangle. 
+
 \fbox{\begin{minipage}{40em}
-\textbf{Form this as a clustering problem $X = DW$. What do $X,D,W$ look like? Our search set contains 79 stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
+\textbf{Consider this as the clustering problem $X = DW$. What do $X,D,W$ look like? Our search set contains 79 stars. If D is $n\times k$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
 \end{minipage}
 }
 
-This clustering approach is very valuable when searching over the whole set of stars. We can pre-compute the clusters for the combinations involving the brightest stars (this would take a long time, but we'd only have to do it once), and then just check which cluster our feature angles fall into to get a whole set of possible matches. For the purposes of this lab and the smaller search space we are dealing with, it is actually pretty quick and efficient to just do a brute-force iteration through all possible star combinations in reverse order of brightness until we find a match that fits our features within a certain threshold. If we want $k$ possible matches, we just keep iterating until we find $k$ matches.
+The set of all possible triangles formed by our set of stars is far too large to use this clustering approach directly. Fortunately, by only considering a subset of brighter stars and limiting the size of our triangles, we can reduce the set of triangles to about $40,000$, which we can then cluster into about $1200$ clusters so that each cluster contains on average $30-40$ triangles.  This computation is time-consuming but we only need to do it once - not for each search.
 
-\fbox{\begin{minipage}{40em}\textbf{
-This brute-force method only finds $k$ possible fits, where we choose $k$ ahead of time. Why might the clustering approach be more preferable?}
+\fbox{\begin{minipage}{40em}\textbf{An alternative to this clustering approach would be to just find the $k$ closest triangles to our target triangle, where $k$ is determined ahead of time.  What are the advantages of the clustering approach?
+}
 \end{minipage}}
 
-
 Unfortunately, this approach doesn't scale well when our feature set is more than 3 points (most notably, the search space becomes way too large). However, matching 3 feature points to 3 stars does uniquely determine a transformation from the $(x,y)-$plane that the features lie in to the $(x,y)-$plane that the stars lie in. So rather than finding a match for the remaining points using this clustering approach, we can simply check to see if there are stars in the appropriate places to form the rest of our shape. To do this, we need to find the transformation from the $(x,y)-$coordinates of our features to the $(x,y)-$coordinates of our stars. To find this transformation, we must solve what is called the Procrustes problem.
+
 
 \subsection{The Orthogonal Procrustes Problem\cite{Everson1997}}
 Here we address the problem of finding the ideal transformation $T$ between our set of feature points $F$ and a predetermined subset of stars $S\subset \mathbb{S}$. Here we are assuming $F$ and $S$ are the same size $(2\times k)$ and represent their respective collections of points in Cartesian coordinates (each column is a point).  Finding this transformation will be necessary to evaluate the fitness of a possible match.
@@ -427,7 +408,9 @@ You have been supplied: diamond.png (see Figure \ref{diamond}) and a subset of o
   \item 
   Implement a methodology to reduce this set of $k$ feature points to $n << k$  points. How well do your features match the original image?
   \item
-  Pick $3$ of your $n$ points and compute the angles between them. Now find a good potential match in the subset of stars provided for the triangle formed by these 3 points. Iterate through all possible combinations of stars in descending order of brightness (remember that $lower$ magnitude corresponds to $brighter$ stars) until 3 matches have been found (use some reasonable threshold error to determine a match).
+    Pick $3$ of your $n$ points and compute the angles between them and arrange them is ascending order. Use the $clustercenters.mat$ file to determine the index of the cluster your triangle falls in (by finding the closest one).
+    
+    The $starlabels.mat$ file contains the triangle data. For every triangle, it contains the index of each star and the label of each cluster. Use this to find $3$ possible triangle matches that lie in the subset we provided you in $stars.mat$.  \textbf{Note: the indices in the "label" variable corresponds to Python indices and range 0-1232. If you are using Matlab and looking for the row of "clustercenter" that corresponds to that index, add 1. e.g. cluster label "5" is the cluster centered at row 6 of clusterdata.}
   \item
   Generalize the orthogonal procrustes problem so that it will be useful for this case. That is, given the $(2\times 3)$ matrix of feature points $F$ and a  $(2\times 3)$ matrix of star points $S$ (which are not unit norm or centered around the origin), find ideal transformation $T$ such that $||T(F)-S||_F$ is minimized.  Note that it is easy to reduce to the previous case by computing the following:
   $$

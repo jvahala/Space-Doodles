@@ -281,6 +281,20 @@ class StarTable:
         
         return SubTable(self,self.tab['Index'][indices])
         
+    def ClosestStarsPoint(self, cRA, cDec, radius):
+        """
+        Returns indices of stars that is
+        within radius of the center_index star
+        """
+        
+        tRA = self.tab['RA']    
+        tDec = self.tab['Dec']
+        
+        indices = spherematch(tRA, tDec, cRA, cDec, maxmatch = 0, matchlength = radius)[0]
+        
+        return SubTable(self,self.tab['Index'][indices])
+
+        
     def DeleteDimStars(self, number_to_keep):
         
         startab_sorted = self.tab[self.tab['Mag'].argsort()]
