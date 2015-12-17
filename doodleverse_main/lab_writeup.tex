@@ -230,13 +230,13 @@ Next we want to begin our search to see if we can find a set of stars that fits 
      RA          Dec           Mag       Index
   float64      float64       float64     int32
 ------------ ------------ -------------- -----
-292.66593315  -2.78886135 0.930936251799  2353
- 294.1803189  -1.28655047 0.834533374101  2367
- 294.4469016  -4.64750966 0.991367906475  2370
+ 263.4021936 -37.10374835 0.440288769784  2096
+  262.690995 -37.29574016 0.595684453237  2088
+264.13686135 -38.63486521 0.820144884892  2100
 
 \end{python}
-The "RA" or "right ascension" measures the distance from a central meridian and ranges from $0$ hours to $24$ hours (which corresponds to $0\si{\degree}-360\si{\degree}$). To convert to degrees we need to multiply this column by $15$.
-The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$. The "Mag" or "magnitude" corresponds to the stars brightness. The scale is reversed: \textit{lower numbers correspond to brighter stars}.
+The "RA" or "right ascension" measures the distance from a central meridian and ranges from $0$ hours to $24$ hours (which corresponds to $0\si{\degree}-360\si{\degree}$). We've converted hours to degrees by multiplying this column by $15$.
+The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$. The "Mag" or "magnitude" corresponds to the stars brightness (we've normalized the magnitudes to they fall in the range $(0,1)$). The scale is reversed: \textit{lower numbers correspond to brighter stars}.
 Index refers to a unique ID assigned to each star in our starset.
 
 The Mollweide (or homolographic) projection is a very useful projection for plotting objects in the night’s sky. Unlike most maps we’re used to seeing of the Earth’s surface, the Mollweide projection is ``equal-area”, meaning that the area enclosed within a given, closed curve is the same as the area enclosed within the Mollweide projection of that curve. Additionally, locally, the projection is flat, meaning that the un-projected data will look the same as the projected data if we zoom in far enough (realistically, this happens at scales of a few degrees). The Mollweide projection (and its cousin, the Hammer projection) have been used for about 30 years by the Cosmic Microwave Background physics community, who have used it to represent the temperature of the universe’s nearly-constant radiation field over the whole extent of the sky.  See Figure \ref{moll} for an example Mollweide projection.
@@ -290,7 +290,7 @@ def project(ra, dec, c_ra, c_dec):
 \end{python}
 
 \fbox{\begin{minipage}{40em}
-\textbf{Use this script to convert the 79 stars found in $stars.mat$ to (x,y) coordinates centered at ($\lambda_c,\phi_c)=(293, -2.8)$. (we have converted hours to degrees for you, but be sure to convert degrees to radians for the funcion defined above)}
+\textbf{Use this script to convert the 79 stars found in $stars.mat$ to (x,y) coordinates centered at ($\lambda_c,\phi_c)=(263, -37)$. (we have converted hours to degrees for you, but be sure to convert degrees to radians for the funcion defined above)}
 \end{minipage}}
 
 \fbox{\begin{minipage}{40em}
@@ -319,12 +319,12 @@ If we think of every set of 3 points in our search space as a specified by their
 This is very valuable when searching over our entire search space: it effectively finds all possible matches for a given triangle. 
 
 \fbox{\begin{minipage}{40em}
-\textbf{Consider this as the clustering problem $X = DW$. What do $X,D,W$ look like? Our search set contains 79 stars. If W is $k\times n$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
+\textbf{Consider this as the clustering problem $X = DW$. What do $X,D,W$ look like? Our search set contains 131 stars. If W is $k\times n$, what is $n$? What would be the effect of choosing smaller or larger values of $k$?}
 \end{minipage}
 }
 
 \fbox{\begin{minipage}{40em}
-\textbf{Answer: }$X$ is a $3\times n$ matrix where each column contains in the interior angles of each triangle. $D$ is $3\times k$ and each row contains the coordinates of the cluster centers, and there are $k$ clusters. $n$ would be 79 choose 3 = 79,079. $W$ is $k\times n$ and for each column contains all 0s except a 1 to indicate that triangle is in that cluster.  Choosing larger values of $k$ would increase the computation time and decrease the average number of triangles per cluster.
+\textbf{Answer: }$X$ is a $3\times n$ matrix where each column contains in the interior angles of each triangle. $D$ is $3\times k$ and each row contains the coordinates of the cluster centers, and there are $k$ clusters. $n$ would be 131 choose 3 = 366,145. $W$ is $k\times n$ and for each column contains all 0s except a 1 to indicate that triangle is in that cluster.  Choosing larger values of $k$ would increase the computation time and decrease the average number of triangles per cluster.
 \end{minipage}}
 
 The set of all possible triangles formed by our set of stars is far too large to use this clustering approach directly. Fortunately, by only considering a subset of brighter stars and limiting the size of our triangles, we can reduce the set of triangles to about $40,000$, which we can then cluster into about $1200$ clusters so that each cluster contains on average $30-40$ triangles.  This computation is time-consuming but we only need to do it once - not for each search.
@@ -333,7 +333,7 @@ The set of all possible triangles formed by our set of stars is far too large to
 }
 \end{minipage}}
 
-\fbox{\begin{minipage}{40em}\textbf{Answer: }If there are many good matches and we choose a small $k$, we end up ignoring many of the good matches. Conversely, if there are only a few small matches, choosing a large $k$ makes us consider bad matches. Clustering effectively selects a good value of $k$ for us.
+\fbox{\begin{minipage}{40em}\textbf{Answer: }If there are many good matches and we choose a small $k$, we end up ignoring many of the good matches. Conversely, if there are only a few matches, choosing a large $k$ makes us consider bad matches. Clustering effectively selects a good value of $k$ for us.
 \end{minipage}}
 
 Unfortunately, this approach doesn't scale well when our feature set is more than 3 points (most notably, the search space becomes way too large). However, matching 3 feature points to 3 stars does uniquely determine a transformation from the $(x,y)-$plane that the features lie in to the $(x,y)-$plane that the stars lie in. So rather than finding a match for the remaining points using this clustering approach, we can simply check to see if there are stars in the appropriate places to form the rest of our shape. To do this, we need to find the transformation from the $(x,y)-$coordinates of our features to the $(x,y)-$coordinates of our stars. To find this transformation, we must solve what is called the Procrustes problem.
@@ -423,16 +423,16 @@ You have been supplied: diamond.png (see Figure \ref{diamond}) and a subset of o
   \item
     Pick $3$ of your $n$ points and compute the angles between them and arrange them is ascending order. Use the $clustercenters.mat$ file to determine the index of the cluster your triangle falls in (by finding the closest one).
     
-    The $starlabels.mat$ file contains the triangle data. For every triangle, it contains the index of each star and the label of each cluster. Use this to find $3$ possible triangle matches that lie in the subset we provided you in $stars.mat$.  \textbf{Note: the indices in the "label" variable corresponds to Python indices and range 0-1232. If you are using Matlab and looking for the row of "clustercenter" that corresponds to that index, add 1. e.g. cluster label "5" is the cluster centered at row 6 of clusterdata.}
+    The $starlabels.mat$ file contains the triangle data. For every triangle, it contains the index of each star and the label of each cluster. Use this to find the possible triangle matches that lie in the subset we provided you in $stars.mat$ (you should find $4-5$ depending on which points you started with).  \textbf{Note: the indices in the "label" variable corresponds to Python indices and range 0-1232. If you are using Matlab and looking for the row of "clustercenter" that corresponds to that index, add 1. e.g. cluster label "5" is the cluster centered at row 6 of clusterdata.}
   \item
   Generalize the orthogonal procrustes problem so that it will be useful for this case. That is, given the $(2\times 3)$ matrix of feature points $F$ and a  $(2\times 3)$ matrix of star points $S$ (which are not unit norm or centered around the origin), find ideal transformation $T$ such that $||T(F)-S||_F$ is minimized.  Note that it is easy to reduce to the previous case by computing the following:
   $$
-  \hat{F} = \frac{F-mean(F)}{||F||_F} \quad\textrm{ and }\quad\hat{S} = \frac{S-mean(S)}{||S||_F}
+  \hat{F} = \frac{F_c}{||F||_F} \quad\textrm{ and }\quad\hat{S} = \frac{S_c}{||S||_F}
   $$
-  and solving the problem for $\hat{F}$ and $\hat{S}$ (note: $mean(F)$ is $\begin{bmatrix}
+  and solving the problem for $\hat{F}$ and $\hat{S}$, where $F_c$ is the matrix $F$ with its points centered around the origin: that is for each column, subtract $\begin{bmatrix}
 mean(x \textrm{ coordinates of } F)\\
 mean(y \textrm{ coordinates of } F)
-  \end{bmatrix}$ and the subtraction is done columnwise). Modify the previous Procrustes problem code to solve the general Procrustes problem, and use it to map all of your $n$ feature points to the subspace containing the star projections.
+  \end{bmatrix}$. Modify the previous Procrustes problem code to solve the general Procrustes problem, and for each of your possible matches found in (3), use it to map all of your $n$ feature points to the subspace containing the star projections such that your triangle of feature points best fit with the match.
   \item
   For the feature points that weren't part of your triangle, find the closest stars to their transformed positions. Repeat this process for your other good matches and evaluate the overall fit of your matches using your cost function from the previous section. Which match is best? If your cost function had a weighted penalizer for the star magnitude, how does changing this weight affect your evaluation?
 \end{enumerate}
