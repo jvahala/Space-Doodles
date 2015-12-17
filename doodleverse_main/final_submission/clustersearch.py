@@ -27,7 +27,7 @@ def main():
     # >~3 mostly care about magnitude
     mag_constant = 10
     
-    searchdata = Search(star_tab,featset, mag_constant)
+    searchdata = Search(star_tab,featset, mag_constant=mag_constant)
             
     PlotEverything(searchdata)
     
@@ -483,9 +483,9 @@ def ClusterSearch(featset):
     '''
     
     # Load cluster data.
-    clustercenters = sio.loadmat('cluster_data/clustercenters.mat')['clustercenter']
-    clusterlabels = sio.loadmat('cluster_data/starlabels.mat')['label']
-    startrios = sio.loadmat('cluster_data/starlabels.mat')['startrio']
+    clustercenters = sio.loadmat('clustercenters.mat')['clustercenter']
+    clusterlabels = sio.loadmat('starlabels.mat')['label']
+    startrios = sio.loadmat('starlabels.mat')['startrio']
     
     # Get and sort feature angles.
     feat_angles = np.sort(featset.GetAngles())
