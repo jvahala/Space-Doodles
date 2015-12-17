@@ -130,7 +130,7 @@ For the first task, we must perform a series of image processing steps to separa
 
 For the second task, we start by framing it as an optimization problem. If $\mathbb{S}$ is our set of stars and $F$ is the matrix defined by our feature points, then we are looking for the subset $S\subset\mathbb{S}$ that minimizes the following: $||TF - S||_F$.  Here $T$ is a map from the Cartesian "feature space" to the space that our stars lie in that preserves the shape of our feature points (i.e. doesn't distort angles and relative distances).
 
-The number of stars in our $\mathbb{S}$ set (which has been restricted to stars visible with the naked eye) is around 3000, so for $n$ feature points, there are around 3000 choose $n$ possibilities for $S$. The search space is too large for a brute force method.  We will proceed by breaking this problem into smaller problems to the point where a random search will yield sufficiently quick and accurate results. For this lab, we have provided a subset of $79$ stars that lie in one portion of the sky.
+The number of stars in our $\mathbb{S}$ set (which has been restricted to stars visible with the naked eye) is around 3000, so for $n$ feature points, there are around 3000 choose $n$ possibilities for $S$. The search space is too large for a brute force method.  We will proceed by breaking this problem into smaller problems to the point where a random search will yield sufficiently quick and accurate results. For this lab, we have provided a subset of $131$ stars that lie in one portion of the sky.
 \section{Warmup}
 
 \subsection{Getting Feature Points}
@@ -225,15 +225,14 @@ Finally, our approach that will be discussed later depends on picking three impo
 
 
 \subsection{Cartesian and Spherical Coordinates: The Mollweide Projection}
-Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first three stars of our raw data set:
+Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first three stars the data set we provided in $stars.mat$:
 \begin{python}
-     RA          Dec           Mag       Index
-  float64      float64       float64     int32
------------- ------------ -------------- -----
- 263.4021936 -37.10374835 0.440288769784  2096
-  262.690995 -37.29574016 0.595684453237  2088
-264.13686135 -38.63486521 0.820144884892  2100
-
+	     RA          Dec           Mag       Index
+	  float64      float64       float64     int32
+	------------ ------------ -------------- -----
+	 263.4021936 -37.10374835 0.440288769784  2096
+	  262.690995 -37.29574016 0.595684453237  2088
+	264.13686135 -38.63486521 0.820144884892  2100
 \end{python}
 The "RA" or "right ascension" measures the distance from a central meridian and ranges from $0$ hours to $24$ hours (which corresponds to $0\si{\degree}-360\si{\degree}$). We've converted hours to degrees by multiplying this column by $15$.
 The "Dec" or "declination" measures the distances above or below the equator and ranges from $-90\si{\degree}$ to $90\si{\degree}$. The "Mag" or "magnitude" corresponds to the stars brightness (we've normalized the magnitudes to they fall in the range $(0,1)$). The scale is reversed: \textit{lower numbers correspond to brighter stars}.
@@ -395,6 +394,12 @@ def Procrustes(F, S):
 \end{minipage}
 }
 
+\fbox{\begin{minipage}{40em}
+\textbf{Answer:}
+See $procrustes\_solution.py$
+\end{minipage}
+}
+
 \subsection{Evaluating the Match}
 
 Now we have sufficient machinery to evaluate our possible match.  We know we have a decent match for three of our feature points, and we know how to transform these feature points so they best align with the match. We just have to determine if there is decent match for the remaining feature points. To do this, we apply the same transformation to these feature points, and search for bright stars nearby the transformed points. In the simplest case, we could just pick the closest star to each transformed point and implement some cost function that penalizes dim stars.
@@ -404,6 +409,12 @@ Now we have our set of feature points $[f_1,\ldots,f_n]=F$, our possible match s
 \fbox{\begin{minipage}{40em}\textbf{Suppose we had $k$ such possible matches $\{S_i,M_i\}$, and we want to determine the \textit{best} one. Set up a cost/penalizer function that we are trying to minimize.}
 \end{minipage}}
 
+\fbox{\begin{minipage}{40em}\textbf{Answer:}
+Many possible answers (depending on what norms you pick), but one possibility is:
+$$\sum_{i=1}^{n}||T(f_i)-s_i||+\lambda|m_i|$$
+Where $\lambda$ is the weight factor for the magnitudes, and $T$ is the Procrustes transformation that best fits $F$ with $S$.
+
+\end{minipage}}
 
 
 \section{Lab}
@@ -421,7 +432,7 @@ You have been supplied: diamond.png (see Figure \ref{diamond}) and a subset of o
   \item 
   Implement a methodology to reduce this set of $k$ feature points to $n << k$  points. How well do your features match the original image?
   \item
-    Pick $3$ of your $n$ points and compute the angles between them and arrange them is ascending order. Use the $clustercenters.mat$ file to determine the index of the cluster your triangle falls in (by finding the closest one).
+    Pick $3$ of your $n$ points and compute the angles between them and arrange them is ascending order. Use the $clustercenters.mat$ file to determine the index of the 3 closest clusters to your triangle (by finding the 3 closest ones).
     
     The $starlabels.mat$ file contains the triangle data. For every triangle, it contains the index of each star and the label of each cluster. Use this to find the possible triangle matches that lie in the subset we provided you in $stars.mat$ (you should find $4-5$ depending on which points you started with).  \textbf{Note: the indices in the "label" variable corresponds to Python indices and range 0-1232. If you are using Matlab and looking for the row of "clustercenter" that corresponds to that index, add 1. e.g. cluster label "5" is the cluster centered at row 6 of clusterdata.}
   \item
@@ -437,14 +448,18 @@ mean(y \textrm{ coordinates of } F)
   For the feature points that weren't part of your triangle, find the closest stars to their transformed positions. Repeat this process for your other good matches and evaluate the overall fit of your matches using your cost function from the previous section. Which match is best? If your cost function had a weighted penalizer for the star magnitude, how does changing this weight affect your evaluation?
 \end{enumerate}
 
+\fbox{\begin{minipage}{40em}
+\textbf{Answer:}
+See $lab\_solution.py$
+(for the last question, making the star magnitude weight higher causes constellations with brighter stars but a worse fit to be picked)
+\end{minipage}
+}
+
 \bibliography{cited_papers}
 \bibliographystyle{ieeetr}
 
 \section*{Appendix: Results}
-
-We (the authors) managed to get the whole thing running, tip-to-tail, including a somewhat improved clustering approach (above and beyond what was presented in the lab originally). Basically, by finding the position of the initial triangle in feature-space (determined by its angles), we can associate it with one of several ``clusters" of triangles formed by stars in our catalog. This matching allows a smaller sub-sample of stars, that we \textit{can} exhaustively search for a good overall match.
-
-Below we have provided example images and associated star mappings for various test shapes. Note that magnitude 3 brightness is visible from most populated areas (not city centers), and magnitude 4 brightness is visible from the suburbs (and cooperating Madison nights). 
+Below we have provided results for a few test shapes and sample images from applying this approach exhaustively to all matches found by the initial cluster approach (which is usually around $90-200$). Note that magnitude 3 brightness is visible from most populated areas (not city centers), and magnitude 4 brightness is visible from the suburbs (and cooperating Madison nights). 
 
 \begin{figure}[!h]
 \center{\includegraphics[scale=0.5]{lab_appendix_imgs/duck_features.png}}
