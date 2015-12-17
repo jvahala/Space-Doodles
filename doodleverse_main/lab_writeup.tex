@@ -195,7 +195,7 @@ The local maxima from this approach yields the corners found in the image. By th
 \\
 \\
 \\
-Finally, in order to turn our $m$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}  i = 1, 2, ..., m$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$ where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. The algorithm is defined below. Note that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
+Finally, in order to turn our $m$ feature points into the $n$ feature points that best represent the contour, we perform an algorithm which adds and removes points according to user-defined thresholds. We determine this set of $n$ points by testing points $p_{x_i},_{y_i}  i = 1, 2, ..., m$ for how much their removal would induce error between the new contour $c_i$ and the original $k$ point contour $c^*$ by calculating the normalized absolute error $E$ between $c_i$ and $c^*$: $$E = \frac{1}{|| p_{x_{i-1},y_{i-1}}  -  p_{x_{i+1},y_{i+1}} ||_2} \int\limits_{p_{x_{i-1},y_{i-1}}}^{p_{x_{i+1},y_{i+1}}} |l(x,y)| \ dx \ dy$$ Where $l(x,y)$ is the curve of $c^*$ relative to the linear spline connecting $p_{x_{i-1},y_{i-1}}$ and $p_{x_{i+1},y_{i+1}}$. The goal thus becomes to choose only those points that, for some theshold $T$, do not induce error $E > T$. The algorithm is defined below. Note that the most important aspect is the selection of the threshold values $t_{delete}$ and $t_{add}$. 
 
 \textbf{N-feature selection algorithm}
 \\
@@ -223,6 +223,7 @@ Finally, our approach that will be discussed later depends on picking three impo
 \label{feat_detect}
 \end{figure}
 
+\pagebreak
 
 \subsection{Cartesian and Spherical Coordinates: The Mollweide Projection}
 Next we want to begin our search to see if we can find a set of stars that fits these feature points. The first issue we encounter is that our extracted feature points have Cartesian coordinates in the $(x,y)-$plane and our star data set is in spherical coordinates. Here is a readout of the first three stars the data set we provided in $stars.mat$:
@@ -261,6 +262,8 @@ $$$$
 \theta_{k+1} = \theta_k + \frac{2\theta_k+sin(2\theta_k)-\pi(sin\phi-\phi_c)}{2+2cos(2\theta_k)}
 $$
 
+\pagebreak
+
 Here is a Python script which will compute the Mollweide projection for given spherical coordinates:
 \begin{python}
 
@@ -296,12 +299,13 @@ def project(ra, dec, c_ra, c_dec):
 \textbf{Answer:} Answers will vary, but the results should look like the figure.
 \end{minipage}}
 
-You should get something like this:
 \begin{figure}[!h]
 \center{\includegraphics[scale=.7]{projection.eps}}
 %\captionsetup{labelformat=empty}
 \caption{Example projection result.}
 \end{figure}
+
+\pagebreak
 
 \subsection{Preliminary Search: A Clustering Approach}
 
@@ -312,6 +316,30 @@ In essence, this is a clustering problem. First, let's simplify the problem by c
 $$\arccos\left(\frac{P_{12}^TP_{13}}{||P_{12}||||P_{13}||}\right)$$
 
 Where $P_{ij}$ is the vector formed by $(p_i - p_j)$.
+
+\pagebreak
+Here is the Python code that implements this:
+\begin{python}
+    def GetAngles(verts):
+        '''
+        Get angles between vertices specified by first 3 points in verts
+        '''
+        d = np.zeros((3))
+        ab = verts[0]-verts[1]
+        ac = verts[0]-verts[2]
+        cb = verts[1]-verts[2]
+        d[0] = np.linalg.norm(ab)
+        d[1] = np.linalg.norm(ac)
+        d[2] = np.linalg.norm(cb)
+        
+        a = np.zeros((3))
+        a[0] = np.arccos(np.dot(ab,ac)/(d[0]*d[1]))
+        a[1] = np.arccos(np.dot(ab,cb)/(d[0]*d[2]))
+        a[2] = np.arccos(np.dot(ac,cb)/(d[1]*d[2]))
+        
+        return a
+\end{python}
+
 
 If we think of every set of 3 points in our search space as a specified by their interior angles (sorting the angles in ascending order uniquely determines the set's "angle representation"), we are basically looking for the 3-point sets that lie in the same cluster as our feature points. This cluster would be our "possible match" cluster.
 
@@ -368,7 +396,7 @@ $$ T^* = \argmax_T~tr(U \Sigma V^T T^T) $$
 
 $$ T^* = \argmax_T~tr(U^T T V \Sigma) $$
 
-$U^T T V$ is orthogonal, so $tr(U^T T V \Sigma) \le tr(\Sigma)$. When $T=U V^T$, $U^T T V = I$, and so $tr(U^T T V \Sigma) = tr(\Sigma)$. So $T^*=U V^T$ is a minimizer.
+$U^T T V$ is orthogonal, so $tr(U^T T V \Sigma) \le tr(\Sigma)$. This is equality when $U^T T V = I$, or $T=UV^T$. So $T^*=U V^T$ is a minimizer.
 
 \end{minipage}}
 
@@ -399,7 +427,7 @@ def Procrustes(F, S):
 See $procrustes\_solution.py$
 \end{minipage}
 }
-
+\pagebreak
 \subsection{Evaluating the Match}
 
 Now we have sufficient machinery to evaluate our possible match.  We know we have a decent match for three of our feature points, and we know how to transform these feature points so they best align with the match. We just have to determine if there is decent match for the remaining feature points. To do this, we apply the same transformation to these feature points, and search for bright stars nearby the transformed points. In the simplest case, we could just pick the closest star to each transformed point and implement some cost function that penalizes dim stars.
